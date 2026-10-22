@@ -1,0 +1,2143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Compare supermarket prices, keep shopping lists and spot price drops.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Schapprijs">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font-size: 14px; font-family: system-ui, sans-serif; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Schapprijs</title>
+<meta name="theme-color" content="#0a7fc2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: grocery-app shell — compact sticky header with a pill search, a three-store comparison band, a two-column product grid with square tiles, and a bottom tab bar. */
+:root {
+  /* One bright light theme in the style of a Dutch supermarket app: white surfaces, sky-blue chrome, store colours kept distinct. */
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --ink: #16222f;
+  --muted: #5b6878;
+  --line: #e0e7ee;
+  --accent: #0a7fc2;
+  --accent-deep: #075d90;
+  --accent-soft: #e2f1fa;
+  --on-accent: #ffffff;
+  --good: #14873f;
+  --good-soft: #e3f5e9;
+  --warn-soft: #fff4d1;
+  --tile: #f2f6fa;
+  --ah: #0077c8;
+  --jumbo: #ffcf00; --on-jumbo: #1b1b1b;
+  --dirk: #e1251b;
+  --lidl: #0b2a6f; --plus: #00857a; --dekamarkt: #f07c00; --hoogvliet: #6b3fa0; --spar: #7a4a1e; --vomar: #c2185b; --poiesz: #3d5a80; --aldi: #1c3d8c; --ekoplaza: #4f7d2c;
+  --f-display: "Bricolage Grotesque", "Segoe UI", Roboto, sans-serif;
+  --f-body: "Figtree", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "Roboto Mono", monospace;
+  color-scheme: light;
+}
+/* Dark is opt-in from Settings (or "match my phone"), never forced by the viewer. */
+:root[data-scheme="dark"] {
+  --bg: #0f1620; --surface: #18222e; --ink: #e8eef5; --muted: #9aa8b8; --line: #2a3644;
+  --accent: #1673b0; --accent-deep: #8ccbf2; --accent-soft: #16324a; --good: #3cc06d; --good-soft: #163a24;
+  --warn-soft: #3a3217; --tile: #1f2b38; --lidl: #3d63c4; --spar: #a8723e; --poiesz: #6688b8; --aldi: #4a6fc9;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-scheme="system"] {
+    --bg: #0f1620; --surface: #18222e; --ink: #e8eef5; --muted: #9aa8b8; --line: #2a3644;
+    --accent: #1673b0; --accent-deep: #8ccbf2; --accent-soft: #16324a; --good: #3cc06d; --good-soft: #163a24;
+    --warn-soft: #3a3217; --tile: #1f2b38; --lidl: #3d63c4; --spar: #a8723e; --poiesz: #6688b8; --aldi: #4a6fc9;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45; padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--accent); }
+.wrap { max-width: 720px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--accent); color: var(--on-accent); }
+header .lang { background: rgb(255 255 255 / 0.16); border-color: transparent; }
+header .lang button { color: var(--on-accent); }
+header .lang button[aria-pressed="true"] { background: var(--surface); color: var(--accent-deep); }
+header .chip { border-color: transparent; background: rgb(255 255 255 / 0.16); color: var(--on-accent); }
+header .rchip { flex: none; display: inline-flex; align-items: stretch; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; overflow: hidden; }
+.rchip button { border: 0; background: none; color: var(--ink); font: 500 0.88rem var(--f-body); cursor: pointer; }
+.rchip .rq { padding: 7px 4px 7px 13px; }
+.rchip .rx { padding: 0 11px 0 7px; color: var(--muted); font-size: 1.05rem; }
+.rchip .rx:hover, .rchip .rx:focus-visible { color: var(--dirk); }
+.chip[aria-pressed="true"] { background: var(--surface); color: var(--accent-deep); border-color: var(--surface); }
+header :focus-visible { outline-color: var(--surface) !important; }
+header .wrap { padding-block: 10px 12px; display: grid; gap: 10px; }
+.topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { font-family: var(--f-display); font-weight: 800; font-size: 1.45rem; letter-spacing: -0.02em; margin: 0; }
+.brand { color: var(--on-accent); } .brand span { color: var(--jumbo); }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--surface); }
+.lang button { border: 0; background: none; color: var(--muted); font: 600 0.78rem var(--f-body); letter-spacing: 0.06em; padding: 5px 11px; border-radius: 999px; cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.search { position: relative; }
+.search input { width: 100%; font: 500 1.02rem var(--f-body); color: var(--ink); background: var(--surface); border: 1.5px solid transparent; border-radius: 999px; padding: 13px 44px 13px 44px; outline: none; -webkit-appearance: none; }
+.search input:focus { border-color: var(--jumbo); }
+.search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+.search .clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--muted); font-size: 1.3rem; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 0.85rem var(--f-body); padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+main .wrap { padding-block: 16px 40px; display: grid; gap: 18px; }
+.note { background: var(--warn-soft); border-radius: 10px; padding: 10px 12px; font-size: 0.92rem; }
+.note button { border: 0; background: none; padding: 0; font: 600 0.92rem var(--f-body); color: var(--accent); text-decoration: underline; cursor: pointer; }
+.label { font: 600 0.72rem var(--f-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+
+.compare { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cell { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.cell.win { border: 2px solid var(--good); padding: 9px; background: var(--good-soft); }
+.cell .store { font: 700 0.8rem var(--f-body); }
+.cell .big { font: 800 1.35rem var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.1; }
+.cell .per { font: 500 0.72rem var(--f-data); color: var(--muted); }
+.cell .what { font-size: 0.78rem; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cell .badge { justify-self: start; background: var(--good); color: var(--surface); font: 700 0.66rem var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; }
+.cell .none { font-size: 0.85rem; color: var(--muted); }
+.fine { font-size: 0.8rem; color: var(--muted); margin: 6px 0 0; }
+
+.bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.count { font-size: 0.88rem; color: var(--muted); }
+select { font: 500 0.88rem var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+
+.list { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; color: inherit; text-decoration: none; }
+.row:active { transform: scale(0.995); }
+.row .name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.row .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); }
+.row .price { grid-row: 1 / span 2; grid-column: 2; text-align: right; display: grid; align-content: center; gap: 2px; }
+.row .price b { font: 800 1.25rem var(--f-display); font-variant-numeric: tabular-nums; }
+.row .price small { font: 500 0.72rem var(--f-data); color: var(--muted); white-space: nowrap; }
+.tag { font: 700 0.7rem var(--f-body); padding: 2px 7px; border-radius: 6px; letter-spacing: 0.02em; }
+.t-ah, .store.s-ah { color: #fff; background: var(--ah); }
+.t-jumbo, .store.s-jumbo { color: var(--on-jumbo); background: var(--jumbo); }
+.t-dirk, .store.s-dirk { color: #fff; background: var(--dirk); }
+.t-lidl, .store.s-lidl { color: #fff; background: var(--lidl); }
+.t-plus, .store.s-plus { color: #fff; background: var(--plus); }
+.t-dekamarkt, .store.s-dekamarkt { color: #1b1b1b; background: var(--dekamarkt); }
+.t-hoogvliet, .store.s-hoogvliet { color: #fff; background: var(--hoogvliet); }
+.t-spar, .store.s-spar { color: #fff; background: var(--spar); }
+.t-vomar, .store.s-vomar { color: #fff; background: var(--vomar); }
+.t-poiesz, .store.s-poiesz { color: #fff; background: var(--poiesz); }
+.t-aldi, .store.s-aldi { color: #fff; background: var(--aldi); }
+.t-ekoplaza, .store.s-ekoplaza { color: #fff; background: var(--ekoplaza); }
+.cell .store { justify-self: start; padding: 2px 8px; border-radius: 6px; font-size: 0.74rem; }
+.low { color: var(--good); font-weight: 600; }
+.more { justify-self: center; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 600 0.9rem var(--f-body); padding: 10px 18px; border-radius: 10px; cursor: pointer; }
+
+.empty, .loading { text-align: center; color: var(--muted); padding: 30px 10px; }
+.skel { height: 64px; border-radius: 12px; background: linear-gradient(90deg, var(--surface), var(--line), var(--surface)); background-size: 200% 100%; animation: sh 1.2s infinite linear; }
+@keyframes sh { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+
+
+.addform { display: flex; gap: 8px; }
+.addform input { flex: 1; min-width: 0; font: 500 1.05rem var(--f-body); color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; outline: none; }
+.addform input:focus { border-color: var(--accent); }
+.btn { border: 0; background: var(--accent); color: var(--on-accent); font: 700 0.95rem var(--f-body); padding: 0 18px; border-radius: 12px; cursor: pointer; }
+.btn.ghost { background: var(--surface); color: var(--ink); border: 1px solid var(--line); padding: 8px 14px; font-weight: 600; font-size: 0.85rem; border-radius: 10px; }
+.btn.danger { background: var(--dirk); color: #fff; border-color: transparent; }
+.groc { display: grid; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.gi { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 4px; padding: 4px 4px 4px 12px; border-top: 1px solid var(--line); }
+.gi:first-child { border-top: 0; }
+.gi label { display: flex; align-items: center; gap: 12px; min-width: 0; padding-block: 8px; cursor: pointer; grid-column: 1 / span 2; }
+.gi input[type="checkbox"] { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.gi .txt { font-size: 1rem; font-weight: 500; overflow-wrap: anywhere; }
+.gi.done .txt { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.icon { border: 0; background: none; color: var(--muted); width: 40px; height: 40px; border-radius: 10px; cursor: pointer; display: grid; place-items: center; font-size: 1.25rem; }
+.icon svg { width: 18px; height: 18px; }
+.icon:active { background: var(--bg); }
+.gi .sub { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 8px 8px 36px; font-size: 0.86rem; color: var(--muted); }
+.gi .lp b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.qty { margin-left: auto; display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.qty button { border: 0; background: var(--surface); color: var(--accent-deep); font: 700 1.05rem var(--f-body); width: 34px; height: 30px; cursor: pointer; }
+.qty button:disabled { color: var(--line); cursor: default; }
+.qty span { min-width: 22px; text-align: center; font: 600 0.9rem var(--f-body); color: var(--ink); font-variant-numeric: tabular-nums; }
+.gi .tip { grid-column: 1 / -1; margin: 0 8px 10px 36px; background: var(--good-soft); border-radius: 10px; padding: 9px 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.gi .tip p { margin: 0; flex: 1 1 200px; min-width: 0; font-size: 0.85rem; color: var(--ink); overflow-wrap: anywhere; }
+.btn.small { background: var(--good); padding: 7px 14px; font-size: 0.85rem; border-radius: 999px; }
+.total { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.total span { font-weight: 600; }
+.total b { font: 800 1.4rem var(--f-display); font-variant-numeric: tabular-nums; }
+.total p { flex-basis: 100%; margin: 0; font-size: 0.8rem; color: var(--muted); }
+.addbtn .q { font: 800 0.95rem var(--f-body); }
+.sgroup { display: grid; gap: 6px; }
+.sgroup + .sgroup { margin-top: 14px; }
+.shead { display: flex; align-items: center; gap: 8px; }
+.shead .tag { font-size: 0.8rem; padding: 3px 9px; }
+.shead b { margin-left: auto; font: 800 1.05rem var(--f-display); font-variant-numeric: tabular-nums; }
+.nostore { font: 600 0.8rem var(--f-body); color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 12px; }
+.card h2 { font: 700 1.05rem var(--f-display); margin: 0; }
+.card p { margin: 0; }
+.pform { display: grid; gap: 6px; }
+.pform label { font: 600 0.8rem var(--f-body); color: var(--muted); }
+.pform input { font: 500 1rem var(--f-body); color: var(--ink); background: var(--bg); border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.pform input:focus { border-color: var(--accent); outline: none; }
+.pform .actions { margin-top: 6px; }
+.acct { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.acct img { width: 52px; height: 52px; border-radius: 999px; flex: none; object-fit: cover; }
+.acct .who { min-width: 0; display: grid; gap: 2px; }
+.acct .who b { font-size: 1.05rem; overflow-wrap: anywhere; }
+.acct .who span { color: var(--muted); font-size: 0.86rem; overflow-wrap: anywhere; }
+.opts { display: grid; }
+.opt { display: flex; align-items: center; gap: 12px; padding: 10px 2px; border-top: 1px solid var(--line); cursor: pointer; min-width: 0; }
+.opt:first-child { border-top: 0; }
+.opt input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
+.opt .grow { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.opt .grow small { color: var(--muted); font-size: 0.8rem; }
+.opt.off { cursor: default; opacity: 0.55; }
+.opt .tag { flex: none; min-width: 64px; text-align: center; }
+.card ol { margin: 0; padding-left: 20px; font-size: 0.9rem; }
+.card a { color: var(--accent-deep); }
+.lcards { display: grid; gap: 8px; }
+.lcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px 4px 4px 0; }
+.lopen { border: 0; background: none; color: inherit; text-align: left; font: inherit; padding: 12px 8px 12px 14px; display: grid; gap: 3px; cursor: pointer; min-width: 0; }
+.lrow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.lcount { flex: none; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: var(--dirk); color: #fff; font: 700 0.78rem var(--f-body); display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; }
+.lcount.zero { background: var(--line); color: var(--muted); }
+.lname { font: 700 1.08rem var(--f-display); overflow-wrap: anywhere; }
+.lmeta { font-size: 0.85rem; color: var(--muted); }
+.lmeta b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.pill { justify-self: start; margin-top: 3px; font: 600 0.72rem var(--f-body); color: var(--accent-deep); background: var(--accent-soft); padding: 2px 8px; border-radius: 999px; }
+.lacts { display: flex; align-items: center; }
+.icon.warn { width: auto; padding: 0 10px; background: var(--dirk); color: #fff; }
+.really { font: 600 0.75rem var(--f-body); white-space: nowrap; }
+.lcard .renameform { padding: 8px 8px 8px 12px; }
+.renameform { display: flex; gap: 8px; min-width: 0; flex: 1; }
+.renameform input { flex: 1; min-width: 0; font: 600 1rem var(--f-body); color: var(--ink); background: var(--surface); border: 1.5px solid var(--accent); border-radius: 10px; padding: 8px 10px; }
+.renameform .btn { padding: 0 14px; border-radius: 10px; }
+.lhead { display: grid; gap: 6px; }
+.back { justify-self: start; border: 0; background: none; color: var(--accent-deep); font: 600 0.95rem var(--f-body); padding: 4px 0; cursor: pointer; }
+.ltitle { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.ltitle h2 { font: 800 1.5rem var(--f-display); letter-spacing: -0.01em; margin: 0; overflow-wrap: anywhere; min-width: 0; }
+#listView { display: grid; gap: 16px; }
+#listView[hidden] { display: none; }
+.sheet-bg { position: fixed; inset: 0; z-index: 20; background: rgb(10 20 30 / 0.45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 520px; max-height: 80vh; overflow-y: auto; background: var(--surface); border-radius: 18px 18px 0 0; padding: 18px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 12px; }
+.sheet h2 { font: 800 1.2rem var(--f-display); margin: 0; }
+.sheet-prod { margin: 0; color: var(--muted); font-size: 0.88rem; overflow-wrap: anywhere; }
+.sheet-lists { display: grid; gap: 8px; }
+.pick { display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 12px 14px; font: inherit; cursor: pointer; }
+.pick .grow { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.pick b { font-weight: 700; overflow-wrap: anywhere; }
+.pick small { color: var(--muted); }
+.pick .plus { flex: none; width: 32px; height: 32px; border-radius: 999px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.pick .plus svg { width: 18px; height: 18px; }
+.sheet .btn.ghost { justify-self: stretch; padding: 12px; font-size: 0.95rem; }
+.drop { position: absolute; top: 8px; right: 8px; background: var(--dirk); color: #fff; font: 800 0.78rem var(--f-body); padding: 3px 7px; border-radius: 6px; }
+.tile .was { font: 500 0.75rem var(--f-body); color: var(--muted); }
+.tile .was s { text-decoration-thickness: 1.5px; }
+.dropchip { font: 700 0.74rem var(--f-body); color: #fff; background: var(--dirk); padding: 2px 7px; border-radius: 6px; }
+.tempchip { font: 600 0.74rem var(--f-body); color: var(--accent-deep); background: var(--accent-soft); padding: 2px 7px; border-radius: 6px; }
+.linkbtn { border: 0; background: none; color: var(--accent-deep); font: 600 0.8rem var(--f-body); padding: 2px 0; cursor: pointer; text-decoration: underline; }
+.hist { grid-column: 1 / -1; margin: 0 8px 10px 36px; background: var(--tile); border-radius: 10px; padding: 10px; display: grid; gap: 6px; min-width: 0; }
+.hist svg { width: 100%; height: 76px; display: block; }
+.hist .hl { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8rem; color: var(--muted); }
+.hist .hl b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.spark-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.spark-area { fill: var(--accent-soft); }
+.spark-usual { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.spark-dot { fill: var(--good); }
+.tile .spark { height: 34px; width: 100%; display: block; margin-top: 4px; }
+.dealhead { display: grid; gap: 6px; }
+.dsearch input { background: var(--surface); border-color: var(--line); }
+.dsearch input:focus { border-color: var(--accent); }
+.dealhead h2 { font: 800 1.5rem var(--f-display); margin: 0; letter-spacing: -0.01em; }
+.dealhead p { margin: 0; color: var(--muted); font-size: 0.9rem; max-width: 60ch; }
+.gi .temp-note { grid-column: 1 / -1; margin: 0 8px 8px 36px; font-size: 0.8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.ob-bg { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 20px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 20px) max(16px, env(safe-area-inset-left, 0px)); }
+.ob { max-width: 520px; margin: 0 auto; display: grid; gap: 18px; }
+.ob-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ob-dots { display: flex; gap: 6px; }
+.ob-dots span { width: 8px; height: 8px; border-radius: 999px; background: var(--line); }
+.ob-dots span.on { background: var(--accent); width: 22px; }
+.ob h1 { font: 800 1.9rem var(--f-display); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.ob h1 span { color: var(--accent); }
+.ob h2 { font: 800 1.45rem var(--f-display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.ob .lead { margin: 0; color: var(--muted); font-size: 1rem; max-width: 60ch; }
+.ob-feats { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.ob-feats li { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.ob-feats .fi { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-deep); display: grid; place-items: center; }
+.ob-feats .fi svg { width: 20px; height: 20px; }
+.ob-feats b { display: block; }
+.ob-feats span { color: var(--muted); font-size: 0.9rem; }
+.ob-nav { display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 4px; }
+.ob-nav .btn { padding: 12px 22px; font-size: 1rem; }
+.ob-nav .btn.ghost { padding: 12px 18px; }
+.tour-block { position: fixed; inset: 0; z-index: 39; }
+.tour-hole { position: fixed; z-index: 40; border-radius: 14px; box-shadow: 0 0 0 4px var(--jumbo), 0 0 0 9999px rgb(8 16 26 / 0.62); pointer-events: none; transition: all 0.25s ease; }
+.tour-tip { position: fixed; z-index: 41; width: min(320px, calc(100vw - 24px)); background: var(--surface); color: var(--ink); border-radius: 14px; padding: 14px; display: grid; gap: 10px; box-shadow: 0 10px 30px rgb(0 0 0 / 0.3); }
+.tour-tip h3 { margin: 0; font: 800 1.05rem var(--f-display); }
+.tour-tip p { margin: 0; font-size: 0.92rem; }
+.tour-tip .tnav { display: flex; align-items: center; gap: 8px; }
+.tour-tip .tnav .grow { flex: 1; color: var(--muted); font-size: 0.8rem; }
+.tour-tip .btn { padding: 8px 14px; border-radius: 10px; font-size: 0.88rem; }
+
+main { position: relative; overflow-x: clip; touch-action: pan-y; }
+@keyframes slideFromRight { from { transform: translateX(32%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slideFromLeft { from { transform: translateX(-32%); opacity: 0; } to { transform: none; opacity: 1; } }
+.slide-from-right { animation: slideFromRight 0.26s cubic-bezier(0.2, 0.7, 0.3, 1); }
+.slide-from-left { animation: slideFromLeft 0.26s cubic-bezier(0.2, 0.7, 0.3, 1); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#listBody { display: grid; gap: 18px; }
+.saved { font-size: 0.8rem; color: var(--muted); margin: 0; }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 560px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tile { container-type: inline-size; position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; min-width: 0; }
+.tile > a { display: grid; color: inherit; text-decoration: none; height: 100%; align-content: start; }
+.thumb { position: relative; aspect-ratio: 1 / 1; max-width: 100%; display: grid; place-items: center; background: var(--tile); }
+.thumb svg { width: 44%; height: 44%; color: var(--accent-deep); opacity: 0.85; }
+.thumb .noimg { display: grid; justify-items: center; gap: 4px; color: var(--muted); font-size: 0.72rem; }
+.thumb .noimg svg { width: 40px; height: 40px; opacity: 0.6; }
+.thumb .tag { position: absolute; top: 8px; left: 8px; }
+.tile .body { padding: 10px 10px 12px; display: grid; gap: 3px; }
+.tile .p { font: 800 1.3rem var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.1; }
+.tile .p.low { color: var(--good); }
+.tile .u { font: 500 0.72rem var(--f-data); color: var(--muted); }
+.tile .nm { font-weight: 600; font-size: 0.9rem; line-height: 1.3; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tile .sz { font-size: 0.78rem; color: var(--muted); }
+.addbtn { position: absolute; z-index: 1; right: 8px; top: calc(100cqw - 46px); width: 38px; height: 38px; border-radius: 999px; border: 0; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; cursor: pointer; box-shadow: 0 2px 6px rgb(0 0 0 / 0.18); }
+.addbtn svg { width: 20px; height: 20px; }
+.addbtn.on { background: var(--surface); color: var(--accent); border: 2px solid var(--accent); }
+.gi .ico { flex: none; width: 36px; height: 36px; border-radius: 9px; background: var(--accent-soft); display: grid; place-items: center; }
+.gi .ico svg { width: 20px; height: 20px; color: var(--accent-deep); }
+
+nav.bottom { position: fixed; z-index: 6; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+nav.bottom .in { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); }
+nav.bottom button { border: 0; background: none; color: var(--muted); font: 600 0.75rem var(--f-body); padding: 8px 4px 10px; display: grid; justify-items: center; gap: 3px; cursor: pointer; position: relative; }
+nav.bottom button svg { width: 24px; height: 24px; }
+nav.bottom button[aria-selected="true"] { color: var(--accent); }
+nav.bottom .n { position: absolute; top: 4px; left: calc(50% + 6px); font: 700 0.66rem var(--f-body); background: var(--dirk); color: var(--surface); border-radius: 999px; padding: 1px 6px; }
+.toast { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); background: var(--good); color: #fff; font-weight: 600; font-size: 0.88rem; padding: 10px 16px; border-radius: 999px; max-width: calc(100% - 32px); text-align: center; }
+
+.help { border-top: 1px solid var(--line); padding-top: 16px; font-size: 0.88rem; color: var(--muted); display: grid; gap: 8px; }
+.help h2 { font: 700 1rem var(--f-display); color: var(--ink); margin: 0; }
+.help ol { margin: 0; padding-left: 20px; }
+.help a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="topline">
+      <h1 class="brand">Schap<span>prijs</span></h1>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" id="lang-en" data-lang="en">EN</button>
+        <button type="button" id="lang-nl" data-lang="nl">NL</button>
+      </div>
+    </div>
+    <div id="compareControls" style="display:grid;gap:10px">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+      <button type="button" class="clear" id="clear" aria-label="Clear" hidden>×</button>
+    </div>
+    <div class="chips" id="storeChips"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap" id="out">
+    <div class="loading"><div class="list"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div><p id="loadingText"></p></div>
+  </div>
+  <div class="wrap" id="dealsView" hidden>
+    <div class="search dsearch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="dq" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+      <button type="button" class="clear" id="dclear" aria-label="Clear" hidden>×</button>
+    </div>
+    <div id="dealsOut" style="display:grid;gap:18px"></div>
+  </div>
+  <div class="wrap" id="settingsView" hidden><div id="settingsBody" style="display:grid;gap:14px"></div></div>
+  <div class="wrap" id="listView" hidden>
+    <div id="listHead"></div>
+    <form class="addform" id="addForm" autocomplete="off">
+      <input id="addInput" type="text" enterkeyhint="done" aria-label="Add an item">
+      <button type="submit" class="btn" id="addBtn"></button>
+    </form>
+    <div id="listBody"></div>
+  </div>
+</main>
+
+<nav class="bottom" aria-label="Sections">
+  <div class="in" role="tablist">
+    <button type="button" role="tab" id="tab-compare" data-tab="compare">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.5"/></svg>
+      <span id="tab-compare-label"></span>
+    </button>
+    <button type="button" role="tab" id="tab-deals" data-tab="deals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/></svg>
+      <span id="tab-deals-label"></span>
+    </button>
+    <button type="button" role="tab" id="tab-list" data-tab="list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/></svg>
+      <span id="tab-list-label"></span>
+    </button>
+    <button type="button" role="tab" id="tab-settings" data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      <span id="tab-settings-label"></span>
+    </button>
+  </div>
+</nav>
+<div class="toast" id="toast" role="status" hidden></div>
+<div class="ob-bg" id="onboard" hidden><div class="ob" id="obCard" role="dialog" aria-modal="true" aria-labelledby="obTitle"></div></div>
+<div class="tour-block" id="tourBlock" hidden></div>
+<div class="tour-hole" id="tourHole" hidden></div>
+<div class="tour-tip" id="tourTip" role="dialog" aria-live="polite" hidden></div>
+<div class="sheet-bg" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle"></h2>
+    <p class="sheet-prod" id="sheetProd"></p>
+    <div class="sheet-lists" id="sheetLists"></div>
+    <form class="addform" id="sheetNew" autocomplete="off"><input id="sheetNewInput" type="text" maxlength="60"><button type="submit" class="btn" id="sheetNewBtn"></button></form>
+    <button type="button" class="btn ghost" id="sheetCancel"></button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // Every supermarket in the open price data; only the ones ticked in Settings are searched.
+  const ALL_STORES = [
+    { key: "ah", name: "Albert Heijn", short: "AH" },
+    { key: "jumbo", name: "Jumbo", short: "Jumbo" },
+    { key: "dirk", name: "Dirk", short: "Dirk" },
+    { key: "lidl", name: "Lidl", short: "Lidl" },
+    { key: "plus", name: "PLUS", short: "PLUS" },
+    { key: "dekamarkt", name: "DekaMarkt", short: "Deka" },
+    { key: "hoogvliet", name: "Hoogvliet", short: "Hoogvliet" },
+    { key: "spar", name: "SPAR", short: "SPAR" },
+    { key: "vomar", name: "Vomar", short: "Vomar" },
+    { key: "poiesz", name: "Poiesz", short: "Poiesz" },
+    { key: "aldi", name: "ALDI", short: "ALDI" },
+    { key: "ekoplaza", name: "Ekoplaza", short: "Ekoplaza" },
+  ];
+  const DEFAULT_STORES = ["ah", "jumbo", "dirk"];
+  let STORES = ALL_STORES.filter(s => DEFAULT_STORES.includes(s.key));
+  const T = {
+    en: {
+      placeholder: "Search a product, e.g. halfvolle melk",
+      loading: "Loading prices…",
+      loadFail: "Prices could not be loaded. Check your connection and reopen the app.",
+      all: "All stores",
+      cheapest: "Cheapest",
+      cheapestPer: u => `Cheapest per ${u}`,
+      cheapestPrice: "Cheapest pack price",
+      cmpUnit: "Per kg / l", cmpPack: "Per pack",
+      noMatch: "No match",
+      compareNote: "Compares the cheapest matching product at each store. Brands and sizes can differ, so check the product names.",
+      results: n => `${n} product${n === 1 ? "" : "s"}`,
+      similar: "Similar names",
+      similarNote: "Close spellings of what you typed.",
+      didYouMean: "Did you mean",
+      showingFor: (a, b) => `No exact results for “${a}”. Showing results for “${b}”.`,
+      nothing: q => `Nothing found for “${q}”. Try a shorter word or a Dutch product name.`,
+      sortBest: "Best match", sortPrice: "Lowest price", sortUnit: "Lowest per kg / litre",
+      more: "Show more",
+      start: "Type a product to compare prices at your ticked supermarkets.",
+      recent: "Recent",
+      units: { kg: "kg", l: "litre", st: "piece" },
+      unitShort: { kg: "/kg", l: "/l", st: "/pc" },
+      updated: d => `Prices updated ${d}`,
+      helpTitle: "Install the app",
+      helpSteps: ["Android (Chrome): tap the ⋮ menu, then “Install app” or “Add to Home screen”.", "iPhone (Safari): tap the Share button, then “Add to Home Screen”.", "Computer (Chrome or Edge): click the install icon in the address bar."],
+      tabCompare: "Compare", tabList: "My lists",
+      addToList: n => `Add ${n} to my list`, onList: (n, q) => `${n}: ${q} on your list. Tap to add one more`, added: "Added to your list", addedN: n => `Added. ${n} on your list now`, noImage: "No image",
+      sortList: "Sort the list", noStore: "No store chosen",
+      tabSettings: "Settings",
+      removeRecent: q => `Remove “${q}” from recent searches`, topDrops: "Biggest price drops today", seeAllDrops: "See all price drops",
+      tabDeals: "Price drops", dealSearchPh: "Search price drops, e.g. coffee",
+      noDealFor: q => `No price drop for “${q}” right now. Its price is normal at your ticked supermarkets.`,
+      openItems: n => `${n} item${n === 1 ? "" : "s"} to get`, pickList: "Add to which list?", newListBtn: "Create and add", newListPh2: "Or a new list, e.g. Weekend BBQ", cancel: "Cancel",
+      alreadyOn: q => `${q} already on this list`, itemsLeft: n => `${n} to get`, inLists: q => `${q} on your lists. Tap to add to a list`,
+      dealsTitle: "Price drops", dealsIntro: d => `Products that cost at least 15% less than their usual price over the last 30 days of prices (${d} days of data). Shelf-price changes only: Bonus and multi-buy offers are not in the data.`,
+      noDeals: "No price drops at your ticked supermarkets right now. Albert Heijn and Dirk rarely change shelf prices, so most drops show up at Jumbo, SPAR and Poiesz.",
+      dealSorts: { pct: "Biggest drop", save: "Biggest saving", new: "Newest" },
+      usually: v => `usually ${v}`, dropFor: (pct, v) => `−${pct}% · usually ${v}`,
+      cheaperDeal: (m, name, st, cost, old, save) => `Price drop: ${m} × ${name} at ${st} is ${cost} right now instead of ${old}. You save ${save} while the drop lasts, and the list switches back when it ends.`,
+      tempNote: "Temporary switch for a price drop", switchBack: "Switch back now", reverted: n => `${n} price drop${n === 1 ? "" : "s"} ended. Switched back to your usual product${n === 1 ? "" : "s"}.`,
+      switchedBack: "Switched back", history: "Price history", hideHistory: "Hide price history", histNow: "Now", histUsual: "Usual", histLow: "30-day low", histHigh: "30-day high", histNone: "No price history for this product yet.",
+      dealsOnLists: n => `${n} price drop${n === 1 ? "" : "s"} for products on your lists`,
+      myLists: "My lists", newListPh: "New list, e.g. Weekend BBQ", create: "Create", defaultList: "Groceries", backToLists: "My lists",
+      rename: "Rename", save: "Save", deleteList: "Delete list", confirmDelete: "Tap again to delete",
+      listMeta: (a, b) => `${a} to get · ${b} got it`, addsHere: "+ in Compare adds here", listCreated: n => `Created ${n}`,
+      addedTo: n => `Added to ${n}`, addedToN: (n, q) => `Added. ${q} on ${n} now`, listsCount: n => `${n} list${n === 1 ? "" : "s"}`,
+      account: "Account", signedOut: "Not signed in", guest: "Guest",
+      claudeAccount: n => `Signed in with Claude as ${n}`, notSignedIn: "Not signed in with Claude",
+      editProfile: "Edit name and email", nameLabel: "Name", emailLabel: "Email (optional)", profileSaved: "Profile saved",
+      savedPhoneOnly: "Saved on this phone only. Your Claude account can view this app but not save to it.",
+      obWelcome: "Welcome to", obLead: "Compare supermarket prices, keep shopping lists and spot price drops, all in one app.",
+      obFeats: [["Compare prices", "Search any product and see what it costs at each supermarket, per pack or per kilo or litre."], ["Shopping lists", "Make as many lists as you like. The app adds up the total and suggests cheaper packs with the same amount."], ["Price drops", "See products that are cheaper than usual right now, with 30 days of price history."]],
+      obLang: "Language", obNext: "Next", obBack: "Back", obSkip: "Skip setup", obStart: "Start the tour", obStep: (a, b) => `Step ${a} of ${b}`,
+      obProfileTitle: "What should we call you?", obProfileLead: "This is only shown in the app on this phone. You can always change it later in Settings.",
+      obStoresTitle: "Where do you shop?", obStoresLead: "Tick the supermarkets you want to compare. You can change this any time in Settings.",
+      obLookTitle: "Pick a look", obLookLead: "Light is the default. You can switch later in Settings.",
+      tour: [["Search", "Type any product here. Typos and English words work too, and your recent searches appear when you tap the bar."], ["Filter by store", "Show results from one supermarket only."], ["Add to a list", "Tap + on a product to put it on one of your lists. Tap a product itself to open it on the store's website."],
+        ["Price drops", "This tab shows products that cost clearly less than their usual price right now."], ["Search price drops", "Look up a product here to see whether it has a price drop at the moment."], ["Reading a price drop", "Each one shows how much cheaper it is, the usual price crossed out and a chart of the last 30 days. Tap + to add it to a list."],
+        ["My lists", "All your shopping lists, each with a count of items still to get."], ["Open a list", "Tap a list to tick items off, change amounts and see the total and cheaper options. The pencil renames it, the bin deletes it."], ["New list", "Make a separate list for each need, like the weekly shop or a party."],
+        ["Settings", "Your name, supermarkets, look and language are all in Settings."]],
+      tourNext: "Next", tourBack: "Back", tourDone: "Done", tourSkip: "Skip", tourOf: (a, b) => `${a} of ${b}`, tourFinished: "All set. Happy shopping!",
+      replay: "Replay the tour", replayNote: "See the short guided tour of the app again.",
+      thisPhone: "This phone", wipePhone: "Remove my data from this phone", wipeConfirm: "Tap again to remove", wiped: "Removed this phone's data",
+      wipeNoteCloud: "Your lists stay in your Claude account and come back the next time you open the app.",
+      wipeNoteLocal: "This deletes your lists and settings on this phone for good.", you: "You", listCount: n => `${n} item${n === 1 ? "" : "s"} on your list`,
+      stores: "Supermarkets", storesNote: "Ticked supermarkets appear in Compare, in cheaper suggestions and in the store filter. Each one you add downloads its prices when you open the app.",
+      products: n => `${n.toLocaleString("en-GB")} products`, noPrices: "No online prices available", keepOne: "Keep at least one supermarket ticked",
+      loadingStore: n => `Loading ${n} prices…`,
+      motion: "Animations", motionNote: "Slide between tabs when you tap or swipe.",
+      appearance: "Appearance", themeLight: "Light", themeDark: "Dark", themeSystem: "Match my phone",
+      language: "Language",
+      about: "About the prices", aboutText: d => `Prices come from the open data of Checkjebon.nl and were last updated ${d}. The app refreshes them every morning. Prices in the store can differ, and offers are not included yet.`,
+      listSorts: { added: "Newest first", az: "A to Z", store: "Per supermarket", price: "Most expensive first" },
+      qtyLess: "One fewer", qtyMore: "One more",
+      cheaper: (m, name, st, cost, old, save) => `Cheaper for the same amount: ${m} × ${name} at ${st} for ${cost} instead of ${old}. You save ${save}.`,
+      switchTo: "Switch", switched: "Switched to the cheaper option",
+      total: v => `Estimated total ${v}`, noPrice: n => `${n} item${n === 1 ? "" : "s"} without a price. Add products with + in Compare to see their price.`,
+      addPh: "Add items, e.g. eggs, milk, bread", add: "Add",
+      toBuy: "To get", haveIt: "Got it",
+      emptyList: "Your list is empty. Add what you need above; separate several items with commas.",
+      allDone: "Everything is ticked off.",
+      compareItem: "Compare prices", removeItem: "Remove",
+      untickAll: "Untick all", removeTicked: n => `Remove ticked (${n})`, confirmRemove: n => `Tap again to remove ${n} item${n === 1 ? "" : "s"}`,
+      savedCloud: "Your list is saved to your Claude account and opens the same on any device.",
+      savedLocal: "Your lists are saved on this device.",
+      saveFail: "Your last change could not be saved to your account. It is kept on this phone; reopen the app to try again.",
+      source: "Prices come from the open data of Checkjebon.nl and can differ from the price in the store. Tap a product to open it on the store’s website.",
+    },
+    nl: {
+      placeholder: "Zoek een product, bijv. halfvolle melk",
+      loading: "Prijzen laden…",
+      loadFail: "De prijzen konden niet worden geladen. Controleer je verbinding en open de app opnieuw.",
+      all: "Alle winkels",
+      cheapest: "Goedkoopst",
+      cheapestPer: u => `Goedkoopst per ${u}`,
+      cheapestPrice: "Laagste prijs per verpakking",
+      cmpUnit: "Per kg / l", cmpPack: "Per verpakking",
+      noMatch: "Geen resultaat",
+      compareNote: "Vergelijkt per winkel het goedkoopste product dat past bij je zoekopdracht. Merk en verpakking kunnen verschillen, dus check de productnamen.",
+      results: n => `${n} product${n === 1 ? "" : "en"}`,
+      similar: "Vergelijkbare namen",
+      similarNote: "Woorden die lijken op wat je typte.",
+      didYouMean: "Bedoelde je",
+      showingFor: (a, b) => `Geen exacte resultaten voor “${a}”. Resultaten voor “${b}”.`,
+      nothing: q => `Niets gevonden voor “${q}”. Probeer een korter woord.`,
+      sortBest: "Beste match", sortPrice: "Laagste prijs", sortUnit: "Laagste per kg / liter",
+      more: "Meer tonen",
+      start: "Typ een product om de prijzen bij je aangevinkte supermarkten te vergelijken.",
+      recent: "Recent",
+      units: { kg: "kilo", l: "liter", st: "stuk" },
+      unitShort: { kg: "/kg", l: "/l", st: "/st" },
+      updated: d => `Prijzen bijgewerkt ${d}`,
+      helpTitle: "De app installeren",
+      helpSteps: ["Android (Chrome): tik op het ⋮-menu en daarna op ‘App installeren’ of ‘Toevoegen aan startscherm’.", "iPhone (Safari): tik op de deelknop en daarna op ‘Zet op beginscherm’.", "Computer (Chrome of Edge): klik op het installatie-icoon in de adresbalk."],
+      tabCompare: "Vergelijken", tabList: "Mijn lijsten",
+      addToList: n => `${n} op mijn lijst zetten`, onList: (n, q) => `${n}: ${q} op je lijst. Tik om er nog een toe te voegen`, added: "Op je lijst gezet", addedN: n => `Toegevoegd. Nu ${n} op je lijst`, noImage: "Geen afbeelding",
+      sortList: "Lijst sorteren", noStore: "Geen winkel gekozen",
+      tabSettings: "Instellingen",
+      removeRecent: q => `“${q}” uit recente zoekopdrachten verwijderen`, topDrops: "Grootste prijsdalingen vandaag", seeAllDrops: "Alle prijsdalingen",
+      tabDeals: "Prijsdalingen", dealSearchPh: "Zoek in prijsdalingen, bijv. koffie",
+      noDealFor: q => `Op dit moment geen prijsdaling voor “${q}”. De prijs is normaal bij je aangevinkte supermarkten.`,
+      openItems: n => `${n} product${n === 1 ? "" : "en"} nog te halen`, pickList: "Op welke lijst?", newListBtn: "Maken en toevoegen", newListPh2: "Of een nieuwe lijst, bijv. BBQ weekend", cancel: "Annuleren",
+      alreadyOn: q => `${q} staat al op deze lijst`, itemsLeft: n => `${n} nog halen`, inLists: q => `${q} op je lijsten. Tik om aan een lijst toe te voegen`,
+      dealsTitle: "Prijsdalingen", dealsIntro: d => `Producten die minstens 15% minder kosten dan hun gewone prijs in de laatste 30 prijsdagen (${d} dagen aan gegevens). Alleen wijzigingen in de schapprijs: Bonus- en meer-voor-minder-acties staan niet in de gegevens.`,
+      noDeals: "Op dit moment geen prijsdalingen bij je aangevinkte supermarkten. Albert Heijn en Dirk veranderen hun schapprijzen zelden, dus de meeste dalingen zie je bij Jumbo, SPAR en Poiesz.",
+      dealSorts: { pct: "Grootste daling", save: "Meeste besparing", new: "Nieuwste" },
+      usually: v => `normaal ${v}`, dropFor: (pct, v) => `−${pct}% · normaal ${v}`,
+      cheaperDeal: (m, name, st, cost, old, save) => `Prijsdaling: ${m} × ${name} bij ${st} kost nu ${cost} in plaats van ${old}. Je bespaart ${save} zolang de daling duurt, daarna zet de lijst het terug.`,
+      tempNote: "Tijdelijk gewisseld voor een prijsdaling", switchBack: "Nu terugzetten", reverted: n => `${n} prijsdaling${n === 1 ? "" : "en"} afgelopen. Teruggezet naar je gewone product${n === 1 ? "" : "en"}.`,
+      switchedBack: "Teruggezet", history: "Prijsverloop", hideHistory: "Prijsverloop verbergen", histNow: "Nu", histUsual: "Normaal", histLow: "Laagste 30 dagen", histHigh: "Hoogste 30 dagen", histNone: "Nog geen prijsverloop voor dit product.",
+      dealsOnLists: n => `${n} prijsdaling${n === 1 ? "" : "en"} voor producten op je lijsten`,
+      myLists: "Mijn lijsten", newListPh: "Nieuwe lijst, bijv. BBQ weekend", create: "Maken", defaultList: "Boodschappen", backToLists: "Mijn lijsten",
+      rename: "Naam wijzigen", save: "Opslaan", deleteList: "Lijst verwijderen", confirmDelete: "Tik nogmaals om te verwijderen",
+      listMeta: (a, b) => `${a} nog halen · ${b} in huis`, addsHere: "+ bij Vergelijken voegt hier toe", listCreated: n => `${n} aangemaakt`,
+      addedTo: n => `Op ${n} gezet`, addedToN: (n, q) => `Toegevoegd. Nu ${q} op ${n}`, listsCount: n => `${n} lijst${n === 1 ? "" : "en"}`,
+      account: "Account", signedOut: "Niet ingelogd", guest: "Gast",
+      claudeAccount: n => `Ingelogd met Claude als ${n}`, notSignedIn: "Niet ingelogd met Claude",
+      editProfile: "Naam en e-mail wijzigen", nameLabel: "Naam", emailLabel: "E-mail (optioneel)", profileSaved: "Profiel opgeslagen",
+      savedPhoneOnly: "Alleen op deze telefoon opgeslagen. Je Claude-account kan deze app bekijken maar er niet in opslaan.",
+      obWelcome: "Welkom bij", obLead: "Vergelijk supermarktprijzen, houd boodschappenlijsten bij en zie prijsdalingen, alles in één app.",
+      obFeats: [["Prijzen vergelijken", "Zoek een product en zie wat het kost bij elke supermarkt, per verpakking of per kilo of liter."], ["Boodschappenlijsten", "Maak zoveel lijsten als je wilt. De app telt het totaal op en stelt goedkopere verpakkingen met dezelfde hoeveelheid voor."], ["Prijsdalingen", "Zie producten die nu goedkoper zijn dan normaal, met 30 dagen prijsverloop."]],
+      obLang: "Taal", obNext: "Volgende", obBack: "Terug", obSkip: "Overslaan", obStart: "Start de rondleiding", obStep: (a, b) => `Stap ${a} van ${b}`,
+      obProfileTitle: "Hoe mogen we je noemen?", obProfileLead: "Dit is alleen zichtbaar in de app op deze telefoon. Je kunt het later altijd wijzigen bij Instellingen.",
+      obStoresTitle: "Waar doe je boodschappen?", obStoresLead: "Vink de supermarkten aan die je wilt vergelijken. Je kunt dit altijd aanpassen bij Instellingen.",
+      obLookTitle: "Kies een weergave", obLookLead: "Licht is de standaard. Je kunt later wisselen bij Instellingen.",
+      tour: [["Zoeken", "Typ hier een product. Typfouten en Engelse woorden werken ook, en je recente zoekopdrachten verschijnen als je op de balk tikt."], ["Filter op winkel", "Toon alleen resultaten van één supermarkt."], ["Op een lijst zetten", "Tik op + bij een product om het op een van je lijsten te zetten. Tik op het product zelf om het op de site van de winkel te openen."],
+        ["Prijsdalingen", "Dit tabblad toont producten die nu duidelijk minder kosten dan hun gewone prijs."], ["Zoeken in prijsdalingen", "Zoek hier een product om te zien of het op dit moment in prijs gedaald is."], ["Een prijsdaling lezen", "Elke daling toont hoeveel goedkoper het is, de gewone prijs doorgestreept en een grafiek van de laatste 30 dagen. Tik op + om het op een lijst te zetten."],
+        ["Mijn lijsten", "Al je boodschappenlijsten, elk met het aantal producten dat je nog moet halen."], ["Een lijst openen", "Tik op een lijst om af te vinken, aantallen te wijzigen en het totaal en goedkopere opties te zien. Met het potlood wijzig je de naam, met de prullenbak verwijder je hem."], ["Nieuwe lijst", "Maak een aparte lijst voor elke gelegenheid, zoals de weekboodschappen of een feestje."],
+        ["Instellingen", "Je naam, supermarkten, weergave en taal vind je allemaal bij Instellingen."]],
+      tourNext: "Volgende", tourBack: "Terug", tourDone: "Klaar", tourSkip: "Overslaan", tourOf: (a, b) => `${a} van ${b}`, tourFinished: "Klaar. Veel plezier met boodschappen doen!",
+      replay: "Rondleiding opnieuw bekijken", replayNote: "Bekijk de korte rondleiding door de app nog een keer.",
+      thisPhone: "Deze telefoon", wipePhone: "Mijn gegevens van deze telefoon verwijderen", wipeConfirm: "Tik nogmaals om te verwijderen", wiped: "Gegevens van deze telefoon verwijderd",
+      wipeNoteCloud: "Je lijsten blijven in je Claude-account en komen terug als je de app weer opent.",
+      wipeNoteLocal: "Dit verwijdert je lijsten en instellingen op deze telefoon definitief.", you: "Jij", listCount: n => `${n} product${n === 1 ? "" : "en"} op je lijst`,
+      stores: "Supermarkten", storesNote: "Aangevinkte supermarkten verschijnen bij Vergelijken, in goedkopere suggesties en in het winkelfilter. Elke winkel die je toevoegt laadt zijn prijzen bij het openen van de app.",
+      products: n => `${n.toLocaleString("nl-NL")} producten`, noPrices: "Geen online prijzen beschikbaar", keepOne: "Laat minstens één supermarkt aangevinkt",
+      loadingStore: n => `Prijzen van ${n} laden…`,
+      motion: "Animaties", motionNote: "Schuif tussen tabbladen als je tikt of veegt.",
+      appearance: "Weergave", themeLight: "Licht", themeDark: "Donker", themeSystem: "Zoals mijn telefoon",
+      language: "Taal",
+      about: "Over de prijzen", aboutText: d => `Prijzen komen uit de open data van Checkjebon.nl en zijn voor het laatst bijgewerkt op ${d}. De app ververst ze elke ochtend. Prijzen in de winkel kunnen afwijken en aanbiedingen staan er nog niet in.`,
+      listSorts: { added: "Nieuwste eerst", az: "A tot Z", store: "Per supermarkt", price: "Duurste eerst" },
+      qtyLess: "Eén minder", qtyMore: "Eén meer",
+      cheaper: (m, name, st, cost, old, save) => `Goedkoper voor dezelfde hoeveelheid: ${m} × ${name} bij ${st} voor ${cost} in plaats van ${old}. Je bespaart ${save}.`,
+      switchTo: "Wisselen", switched: "Gewisseld naar de goedkopere optie",
+      total: v => `Geschat totaal ${v}`, noPrice: n => `${n} product${n === 1 ? "" : "en"} zonder prijs. Voeg producten toe met + bij Vergelijken om de prijs te zien.`,
+      addPh: "Voeg toe, bijv. eieren, melk, brood", add: "Toevoegen",
+      toBuy: "Nog halen", haveIt: "In huis",
+      emptyList: "Je lijst is leeg. Voeg hierboven toe wat je nodig hebt; scheid meerdere producten met komma's.",
+      allDone: "Alles is afgevinkt.",
+      compareItem: "Prijzen vergelijken", removeItem: "Verwijderen",
+      untickAll: "Alles uitvinken", removeTicked: n => `Afgevinkt verwijderen (${n})`, confirmRemove: n => `Tik nogmaals om ${n} product${n === 1 ? "" : "en"} te verwijderen`,
+      savedCloud: "Je lijst wordt opgeslagen in je Claude-account en is op elk apparaat hetzelfde.",
+      savedLocal: "Je lijsten worden op dit apparaat opgeslagen.",
+      saveFail: "Je laatste wijziging kon niet in je account worden opgeslagen. Hij staat wel op deze telefoon; open de app opnieuw om het nog eens te proberen.",
+      source: "Prijzen komen uit de open data van Checkjebon.nl en kunnen afwijken van de prijs in de winkel. Tik op een product om het op de site van de winkel te openen.",
+    },
+  };
+
+  // Common English grocery words -> Dutch, so English searches still find Dutch product names.
+  const PHRASES = {
+    "semi skimmed milk": "halfvolle melk", "whole milk": "volle melk", "skimmed milk": "magere melk",
+    "oat milk": "haverdrink", "almond milk": "amandeldrink", "soy milk": "sojadrink", "peanut butter": "pindakaas",
+    "ice cream": "ijs", "toilet paper": "toiletpapier", "orange juice": "sinaasappelsap", "apple juice": "appelsap",
+    "minced meat": "gehakt", "ground beef": "rundergehakt", "chicken breast": "kipfilet", "sparkling water": "bruisend water",
+    "olive oil": "olijfolie", "sunflower oil": "zonnebloemolie", "brown bread": "bruin brood", "white bread": "wit brood",
+    "dish soap": "afwasmiddel", "washing powder": "waspoeder", "energy drink": "energy", "hand soap": "handzeep",
+  };
+  const WORDS = {
+    milk: "melk", egg: "eieren", eggs: "eieren", bread: "brood", butter: "boter", cheese: "kaas", chicken: "kip",
+    beef: "rund", pork: "varken", mince: "gehakt", rice: "rijst", sugar: "suiker", salt: "zout", pepper: "peper",
+    flour: "bloem", apple: "appel", apples: "appel", banana: "banan", bananas: "banan", orange: "sinaasappel",
+    oranges: "sinaasappel", juice: "sap", beer: "bier", wine: "wijn", coffee: "koffie", tea: "thee",
+    chocolate: "chocola", cookies: "koek", biscuits: "koek", cookie: "koek", potato: "aardappel", potatoes: "aardappel",
+    onion: "uien", onions: "uien", tomato: "toma", tomatoes: "toma", cucumber: "komkommer", lettuce: "sla",
+    carrot: "wortel", carrots: "wortel", garlic: "knoflook", yogurt: "yoghurt", cream: "room", fish: "vis",
+    salmon: "zalm", tuna: "tonijn", shrimp: "garnal", prawns: "garnal", sausage: "worst", sausages: "worst",
+    bacon: "spek", oil: "olie", vinegar: "azijn", honey: "honing", peanuts: "pinda", nuts: "noten", oats: "havermout",
+    soup: "soep", sauce: "saus", mustard: "mosterd", mayo: "mayonaise", detergent: "wasmiddel", soap: "zeep",
+    toothpaste: "tandpasta", diapers: "luiers", nappies: "luiers", soda: "frisdrank", lemonade: "limonade",
+    rolls: "broodjes", frozen: "diepvries", vegetables: "groente", veggies: "groente", strawberries: "aardbei",
+    grapes: "druiven", pear: "peer", pears: "peer", lemon: "citroen", lemons: "citroen", mushrooms: "champignon",
+    spinach: "spinazie", beans: "bonen", corn: "mais", peas: "erwten", noodles: "noedels", almonds: "amandel",
+    raisins: "rozijn", sweets: "snoep", candy: "snoep", crisps: "chips", ham: "ham", turkey: "kalkoen",
+    meat: "vlees", spices: "kruiden", herbs: "kruiden", cinnamon: "kaneel", washing: "was", sponge: "spons",
+    bin: "afval", bags: "zakken", foil: "folie", paper: "papier", tissues: "tissues", deodorant: "deodorant",
+  };
+
+  // Drinks are compared per litre, so "melk" means milk rather than milk chocolate.
+  const LIQUID = new Set(["melk", "sap", "bier", "wijn", "water", "olie", "frisdrank", "limonade", "cola", "haverdrink", "sojadrink", "amandeldrink", "melkdrank", "karnemelk"]);
+
+  // Category icons stand in for product photos, which this app cannot load.
+  const ICONS = {
+    dairy: '<path d="M7 9l2-5h6l2 5v11H7z"/><path d="M7 9h10"/><path d="M10 4l-1 5"/>',
+    cheese: '<path d="M3 17 13 6l8 5v6z"/><path d="M3 17h18"/><circle cx="10" cy="14" r="1"/><circle cx="15" cy="13" r="1.2"/>',
+    eggs: '<path d="M12 3c-3.3 0-6 5-6 9a6 6 0 0 0 12 0c0-4-2.7-9-6-9z"/>',
+    bread: '<path d="M5 11a3.5 3.5 0 0 1 2-6.5h10A3.5 3.5 0 0 1 19 11v9H5z"/><path d="M9 9l-1 2M13 9l-1 2M17 9l-1 2"/>',
+    fruit: '<path d="M12 8c-2-1.5-7-1-7 4.5 0 4 3 7.5 5 7.5 1 0 1.3-.5 2-.5s1 .5 2 .5c2 0 5-3.5 5-7.5C19 7 14 6.5 12 8z"/><path d="M12 8c0-2 1-3.5 3-4.5"/>',
+    veg: '<path d="M14.5 9.5 4.5 20c-.8.8 0 1.5.8.8L16 11"/><path d="M14.5 9.5c1-1 2.5-1 3.5 0s1 2.5 0 3.5"/><path d="M16 8c0-2 .5-3.5 2-5M17.5 9.5c1.5-.5 3-.5 4.5.5"/>',
+    meat: '<path d="M15 3a6 6 0 0 1 6 6c0 3.5-3.5 6.5-7.5 5.5l-3.6 3.6a2 2 0 1 1-2.4 2.4 2 2 0 1 1 2.4-2.4L13.5 14.5C12.5 10.5 11 3 15 3z"/>',
+    fish: '<path d="M2 12c3-5 10-6 14-2l5-3v10l-5-3c-4 4-11 3-14-2z"/><circle cx="7" cy="11" r="1"/>',
+    drink: '<path d="M10 2h4v3l2 3v13H8V8l2-3z"/><path d="M8 12h8"/>',
+    alcohol: '<path d="M8 3h8c0 5-1 8-4 8s-4-3-4-8z"/><path d="M12 11v8M8 21h8"/>',
+    hot: '<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 11h1.5a2 2 0 0 1 0 4H16"/><path d="M9 3c-1 1 1 2 0 3M12.5 3c-1 1 1 2 0 3"/>',
+    sweets: '<rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M6 9h12M6 15h12M12 3v18"/>',
+    snacks: '<path d="M6 3h12l-1 3 1 3v12H6V9l1-3z"/><path d="M7 6h10"/><circle cx="12" cy="14" r="2.5"/>',
+    spread: '<path d="M7 7h10v2l1 2v10H6V11l1-2z"/><path d="M7 3h10v4H7z"/><path d="M9 15h6"/>',
+    frozen: '<path d="M12 2v20M3.5 7l17 10M3.5 17l17-10"/><path d="m9.5 3.5 2.5 2 2.5-2M9.5 20.5l2.5-2 2.5 2"/>',
+    cereal: '<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M7 8c1-2 2-2 3 0M11 7c1-2 2-2 3 0M15 8c1-2 2-2 3 0"/>',
+    grain: '<path d="M12 21V9"/><path d="M12 9c-2.5-.5-4-2.5-4-6 2.5.5 4 2.5 4 6zM12 9c2.5-.5 4-2.5 4-6-2.5.5-4 2.5-4 6z"/><path d="M12 15c-2.5-.5-4-2.5-4-5 2.5.5 4 2 4 5zM12 15c2.5-.5 4-2.5 4-5-2.5.5-4 2-4 5z"/>',
+    sauce: '<path d="M11 2h2v3h-2z"/><path d="M8 10c0-3 2-5 4-5s4 2 4 5v11H8z"/><path d="M8 14h8"/>',
+    meal: '<path d="M12 3 3 19c6 2.5 12 2.5 18 0z"/><circle cx="11" cy="12" r="1.2"/><circle cx="14" cy="16" r="1.2"/><circle cx="9" cy="16.5" r="1.2"/>',
+    cleaning: '<path d="M8 9h7v12H8z"/><path d="M9.5 9V5.5H15l3 2"/><path d="M19 4h1.5M19 7.5h1.5M19 11h1.5"/>',
+    care: '<path d="M7 10h10v11H7z"/><path d="M11 10V6h2v4M10 6h7"/>',
+    baby: '<path d="M9 9h6v11a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/><path d="M10 9V7l2-4 2 4v2"/><path d="M9 13h3M9 16.5h3"/>',
+    pet: '<circle cx="8" cy="7" r="1.8"/><circle cx="16" cy="7" r="1.8"/><circle cx="4.5" cy="12" r="1.6"/><circle cx="19.5" cy="12" r="1.6"/><path d="M12 12c-3 0-5.5 3.5-5.5 5.5S8.5 20 12 20s5.5-.5 5.5-2.5S15 12 12 12z"/>',
+  };
+  const NOIMG = '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 9"/><path d="M3 3l18 18"/>';
+  const CATS = [
+    ["baby", /\b(luier|luiers|babyvoeding|olvarit|nutrilon|zuigfles|billendoek)/],
+    ["pet", /(katten|hondenvoer|hondensnack|whiskas|felix|pedigree|kattenbak|hond )/],
+    ["cleaning", /(wasmiddel|afwas|schoonmaak|reiniger|toiletpapier|keukenpapier|vaatwas|wasverzachter|bleek|vuilniszak|afvalzak|\bwc\b|sponzen|ontkalker|vaatdoek|spons|luchtverfrisser|geurstok|batterij|kaars|lucifer|aluminiumfolie|vershoudfolie|bakpapier|plakband)/],
+    ["care", /(shampoo|douche|tandpasta|tandenborstel|deodorant|\bdeo\b|zeep|anti-transpirant|\bhaar|gezichts|lipbalsem|pleister|paracetamol|ibuprofen|vitamine|hoest|keelpastille|wattenstaaf|verband|incontinentie|bepanthen|bodylotion|scheer|maandverband|tampon|conditioner|zonnebrand|wattenschijf)/],
+    ["alcohol", /(\bbier|pils|wijn|champagne|cremant|chardonnay|malbec|merlot|sauvignon|cabernet|pinot|syrah|rioja|tempranillo|primitivo|riesling|radler|\bipa\b|weizen|tripel|dubbel|desperados|corona|brouwerij|bavaria|rose\b|prosecco|\bcava\b|whisky|wodka|vodka|\brum\b|\bgin\b|heineken|hertog jan|grolsch|amstel|jenever|likeur|cider)/],
+    ["hot", /(koffie|\bthee|espresso|cappuccino|nespresso|senseo|dolce gusto|oploskoffie|chai)/],
+    ["spread", /(pindakaas|\bjam\b|confiture|honing|chocopasta|choco pasta|appelstroop|nutella|hummus|smeerkaas|hazelnootpasta)/],
+    ["bread", /(pannenkoek|poffertjes)/],
+    ["sweets", /(chocola|snoep|\bdrop|koek|biscuit|wafel|\breep|hagelslag|gummy|winegum|lolly|marshmallow|bonbon|praline|taart|cake\b|muffin|brownie|vlokken)/],
+    ["snacks", /(chips|nootjes|pinda|pistache|amandelen|walnot|notenmix|dip\b|cashew|\bnoten|popcorn|borrel|cracker|zoutje|tortilla chips|nachos|pretzel)/],
+    ["frozen", /(diepvries|\bijs\b|ijsjes|magnum|\bola\b|ijsco|sorbet|frites|friet|kroket|bitterbal|frikandel)/],
+    ["cheese", /(kaas\b|\bkaas|kazen|zaanlander|\b\d\d\+|belegen|gouda|brie\b|mozzarella|\bfeta\b|parmez|camembert|cheddar|geitenkaas|mascarpone|ricotta)/],
+    ["dairy", /(melk|yoghurt|kwark|pudding|protein|alpro|\bvla\b|room|boter|margarine|skyr|halvarine|zuivel|creme fraiche)/],
+    ["eggs", /(\beieren|\bei\b|scharrelei)/],
+    ["bread", /(brood|bolletjes|broodjes|croissant|beschuit|\bwrap|tortilla|pistolet|krentenbol|bagel|ontbijtkoek|pita|naan)/],
+    ["cereal", /(muesli|cruesli|havermout|cornflakes|granola|ontbijtgranen|brinta)/],
+    ["meat", /(\bkip|gehakt|\brund|varken|worst|ham\b|\bspek|haas|kotelet|rollade|entrecote|steak|lams|riblap|draadjesvlees|pate\b|salame|tempeh|tofu|filet|schnitzel|burger|salami|kalkoen|biefstuk|\bvlees|shoarma|speklap|karbonade|chorizo|gyros|slavink|bacon|vegetarisch|vegan)/],
+    ["fish", /(\bvis\b|vissticks|zalm|tonijn|garnal|kabeljauw|haring|makreel|sardine|pangasius|mosselen|kibbeling|lekkerbek|surimi|ansjovis)/],
+    ["drink", /(\bcola|frisdrank|limonade|\bsap\b|sapje|\bsap |water|sinas|fanta|sprite|energy|ice ?tea|ranja|siroop|smoothie|7up|tonic|spa\b|chaudfontaine|redbull|red bull|appelsap|sinaasappelsap)/],
+    ["fruit", /(\bappel|banaan|bananen|sinaasappel|\bpeer|peren|aardbei|druif|druiven|mango|ananas|kiwi|citroen|framboz|blauwe bes|bessen|meloen|mandarijn|nectarine|perzik|pruim|kers|fruit|limoen|granaatappel|avocado)/],
+    ["veg", /(groente|tomaat|tomaten|komkommer|\bsla\b|ijsbergsla|wortel|\bui\b|uien|paprika|broccoli|spinazie|aardappel|krieltjes|bospeen|champignon|courgette|prei|knoflook|bloemkool|boontjes|sperzie|aubergine|spruit|rucola|andijvie|kool\b|bonen|erwt|mais\b|maïs)/],
+    ["grain", /(pasta|spaghetti|penne|macaroni|fusilli|rijst|noedel|mie\b|couscous|lasagne|tagliatelle|bloem\b|meel|quinoa|bulgur)/],
+    ["meal", /(pizza|maaltijd|soep|verspakket|burrito|ovenschotel|stamppot|nasi|bami|salade|quiche)/],
+    ["sauce", /(saus|ketchup|mayonaise|mosterd|olie|azijn|bouillon|kruiden|\bpeper|zout|dressing|pesto|sambal|ketjap|curry|marinade|suiker)/],
+  ];
+  const catCache = new Map();
+  function category(name) {
+    let c = catCache.get(name);
+    if (c !== undefined) return c;
+    const n = " " + name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") + " ";
+    c = null;
+    for (const [k, re] of CATS) if (re.test(n)) { c = k; break; }
+    catCache.set(name, c);
+    return c;
+  }
+  const svg = (inner, label) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+  function thumbInner(name) {
+    const c = category(name);
+    return c ? svg(ICONS[c]) : `<span class="noimg">${svg(NOIMG)}<span>${t().noImage}</span></span>`;
+  }
+  const plusIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+  const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+
+  const $ = s => document.querySelector(s);
+  const out = $("#out"), qEl = $("#q"), clearBtn = $("#clear"), chipsEl = $("#storeChips");
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+
+  let lang = store.get("sp-lang", "en");
+  let storeFilter = "all";
+  let sortMode = "best";
+  let compareMode = store.get("sp-compare", "unit");
+  let shown = 40;
+  let DB = null; // { items: [...], vocab, vocabStr, updated }
+  let lastQuery = "";
+
+  const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  const t = () => T[lang];
+  const fmtMoney = n => "€ " + n.toFixed(2).replace(".", lang === "nl" ? "," : ".");
+  const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function editDistance(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    let prev2 = null, prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      let rowMin = i;
+      for (let j = 1; j <= b.length; j++) {
+        let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
+        cur.push(v);
+        if (v < rowMin) rowMin = v;
+      }
+      if (rowMin > max) return max + 1;
+      prev2 = prev; prev = cur;
+    }
+    return prev[b.length];
+  }
+  const maxDist = w => (w.length <= 4 ? 1 : 2);
+
+  function buildIndex(raw) {
+    const items = [];
+    const counts = new Map();
+    for (const s of STORES) {
+      const block = raw.stores[s.key];  // only the ticked stores' files are loaded
+      if (!block) continue;
+      for (const [name, link, price, size, unitPrice, unit] of block.items) {
+        const n = norm(name);
+        const words = n.split(" ");
+        items.push({ store: s.key, name, n, words, link: block.base + link, price, size, unitPrice, unit });
+        for (const w of words) if (w.length >= 3 && !/^\d+$/.test(w)) counts.set(w, (counts.get(w) || 0) + 1);
+      }
+    }
+    const vocab = [...counts.entries()];
+    const byLink = new Map(items.map(it => [it.link, it]));
+    return { items, byLink, vocab, vocabStr: "|" + vocab.map(v => v[0]).join("|") + "|", updated: raw.updated };
+  }
+
+  // Turn the typed text into search terms; each term may have an English alternative.
+  function parseQuery(q) {
+    let n = norm(q);
+    for (const [en, nl] of Object.entries(PHRASES)) if ((" " + n + " ").includes(" " + en + " ")) n = (" " + n + " ").replace(" " + en + " ", " " + nl + " ").trim();
+    return n.split(" ").filter(Boolean).map(tok => {
+      const alts = [{ s: tok, prefix: false }];
+      if (WORDS[tok]) { alts[0].prefix = true; alts.push({ s: WORDS[tok], prefix: false }); }
+      return { tok, alts };
+    });
+  }
+  const known = tok => DB.vocabStr.includes(tok) || /^\d+$/.test(tok) || WORDS[tok];
+
+  function correctToken(tok) {
+    if (tok.length < 3 || known(tok)) return null;
+    const max = maxDist(tok);
+    let best = null;
+    for (const key of Object.keys(WORDS)) {
+      const d = editDistance(tok, key, max);
+      if (d <= max && (!best || d < best.d)) best = { w: key, d, c: 1e9 };
+    }
+    for (const [w, c] of DB.vocab) {
+      let d = editDistance(tok, w, max);
+      if (w.length > tok.length + 1) d = Math.min(d, editDistance(tok, w.slice(0, tok.length), 1) + 0.5);
+      if (d <= max && (!best || d < best.d || (d === best.d && c > best.c))) best = { w, d, c };
+    }
+    return best ? best.w : null;
+  }
+
+  function fuzzyWords(tok) {
+    const set = new Set();
+    if (tok.length < 4) return set;
+    const max = maxDist(tok);
+    for (const [w] of DB.vocab) {
+      if (w === tok) continue;
+      let d = editDistance(tok, w, max);
+      if (d > max && w.length > tok.length) d = editDistance(tok, w.slice(0, tok.length), 1);
+      if (d <= max) set.add(w);
+    }
+    return set;
+  }
+
+  function scoreExact(item, terms) {
+    let score = 0;
+    for (const term of terms) {
+      let best = -1;
+      for (const a of term.alts) {
+        if (a.prefix) {
+          if (item.words.some(w => w.startsWith(a.s))) best = Math.max(best, 3);
+        } else if (item.n.includes(a.s)) {
+          let s = 1;
+          if (item.words.includes(a.s)) s = 5;
+          else if (item.words.some(w => w.startsWith(a.s))) s = 3;
+          best = Math.max(best, s);
+        }
+      }
+      if (best < 0) return -1;
+      score += best;
+    }
+    return score - item.n.length * 0.02;
+  }
+
+  function search(q) {
+    const terms = parseQuery(q);
+    if (!terms.length) return null;
+    let main = [];
+    for (const it of DB.items) { const s = scoreExact(it, terms); if (s >= 0) main.push({ it, s }); }
+
+    // Spelling suggestion for words that do not occur in any product name.
+    let corrected = null;
+    const fixed = terms.map(term => correctToken(term.tok) || term.tok);
+    if (fixed.some((w, i) => w !== terms[i].tok)) corrected = fixed.join(" ");
+
+    let usedCorrection = false;
+    if (!main.length && corrected) {
+      const t2 = parseQuery(corrected);
+      for (const it of DB.items) { const s = scoreExact(it, t2); if (s >= 0) main.push({ it, s }); }
+      usedCorrection = main.length > 0;
+    }
+
+    // Similar names: products where a word is a close spelling of a typed word.
+    const inMain = new Set(main.map(m => m.it));
+    const fuzzy = terms.map(term => fuzzyWords(term.tok));
+    const similar = [];
+    if (fuzzy.some(s => s.size)) {
+      for (const it of DB.items) {
+        if (inMain.has(it)) continue;
+        let ok = true, hits = 0;
+        for (let i = 0; i < terms.length; i++) {
+          const term = terms[i];
+          const direct = term.alts.some(a => a.prefix ? it.words.some(w => w.startsWith(a.s)) : it.n.includes(a.s));
+          if (direct) continue;
+          if (it.words.some(w => fuzzy[i].has(w))) { hits++; continue; }
+          ok = false; break;
+        }
+        if (ok && hits) similar.push({ it, s: -it.n.length * 0.02 });
+      }
+      similar.sort((a, b) => b.s - a.s);
+    }
+    main.sort((a, b) => b.s - a.s);
+    // The comparison uses only the best-matching tier (e.g. "melk" as a word, not "melkchocolade").
+    const base = m => Math.round(m.s + m.it.n.length * 0.02);
+    let top = main.length ? base(main[0]) : 0;
+    let core = main.filter(m => base(m) >= top);
+    if (new Set(core.map(m => m.it.store)).size < 2) core = main.filter(m => base(m) >= top - 2);
+    return { main: main.map(m => m.it), core: core.map(m => m.it), similar: similar.slice(0, 30).map(m => m.it), corrected, usedCorrection };
+  }
+
+  function compareBlock(items, q) {
+    if (!items.length) return "";
+    const words = parseQuery(q).flatMap(term => term.alts.map(a => a.s));
+    if (words.some(w => LIQUID.has(w))) {
+      const liquids = items.filter(it => it.unit === "l");
+      if (liquids.length) items = liquids;
+    }
+    const unitCount = {};
+    // Pick the unit (kg, litre, piece) from the closest matches, which are listed first.
+    const head = items.slice(0, 30);
+    for (const it of head) if (it.unit) unitCount[it.unit] = (unitCount[it.unit] || 0) + 1;
+    const unit = Object.keys(unitCount).sort((a, b) => unitCount[b] - unitCount[a])[0];
+    const useUnit = compareMode === "unit" && unit && unitCount[unit] >= head.length * 0.5;
+    const per = {};
+    for (const s of STORES) {
+      let best = null;
+      for (const it of items) {
+        if (it.store !== s.key) continue;
+        if (useUnit) { if (it.unit !== unit || it.unitPrice == null) continue; if (!best || it.unitPrice < best.unitPrice) best = it; }
+        else if (!best || it.price < best.price) best = it;
+      }
+      if (!best && useUnit) {
+        for (const it of items) if (it.store === s.key && (!best || it.price < best.price)) best = it;
+        if (best) best = { ...best, noUnit: true };
+      }
+      per[s.key] = best;
+    }
+    const val = it => (useUnit && !it.noUnit ? it.unitPrice : it.price);
+    const winners = STORES.map(s => per[s.key]).filter(it => it && !it.noUnit);
+    const winVal = winners.length ? Math.min(...winners.map(val)) : null;
+    const cells = STORES.map(s => {
+      const it = per[s.key];
+      if (!it) return `<div class="cell"><span class="store s-${s.key}">${s.name}</span><span class="none">${t().noMatch}</span></div>`;
+      const win = winners.length > 1 && val(it) === winVal;
+      return `<a class="cell${win ? " win" : ""}" href="${esc(it.link)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">
+        <span class="store s-${s.key}">${s.name}</span>
+        <span class="big">${fmtMoney(val(it))}</span>
+        <span class="per">${useUnit && !it.noUnit ? t().unitShort[unit] : esc(it.size || "")}</span>
+        <span class="what">${esc(it.name)}</span>
+        ${win ? `<span class="badge">${t().cheapest}</span>` : ""}
+      </a>`;
+    }).join("");
+    return `<section><div class="bar" style="margin-bottom:8px"><p class="label" style="margin:0">${useUnit ? t().cheapestPer(t().units[unit]) : t().cheapestPrice}</p>
+      <div class="lang" role="group" aria-label="Compare by">
+        <button type="button" id="cmp-unit" data-cmp="unit" aria-pressed="${compareMode === "unit"}">${t().cmpUnit}</button>
+        <button type="button" id="cmp-pack" data-cmp="pack" aria-pressed="${compareMode === "pack"}">${t().cmpPack}</button>
+      </div></div>
+      <div class="compare" style="grid-template-columns:repeat(${Math.min(STORES.length, 3)},minmax(0,1fr))">${cells}</div><p class="fine">${t().compareNote}</p></section>`;
+  }
+
+  function rowHtml(it, lowest, showSpark) {
+    const deal = dealsByLink.get(it.link);
+    const s = ALL_STORES.find(x => x.key === it.store);
+    const pcs = (it.name.match(/(\d+)\s*(?:stuks|stuk|st)\b/i) || [])[1];
+    const sizeText = [it.size, pcs && !/st/i.test(it.size || "") ? `${pcs} ${lang === "nl" ? "stuks" : "pieces"}` : ""].filter(Boolean).join(" · ");
+    const unitLine = it.unitPrice != null && it.unit ? `${fmtMoney(it.unitPrice)}${t().unitShort[it.unit]}` : "";
+    const on = onList(it.link);
+    return `<div class="tile">
+      <a href="${esc(it.link)}" target="_blank" rel="noopener">
+        <span class="thumb">${thumbInner(it.name)}<span class="tag t-${it.store}">${s.short}</span>${deal ? `<span class="drop">−${deal.d}%</span>` : ""}</span>
+        <span class="body">
+          <span class="p${lowest ? " low" : ""}">${fmtMoney(it.price)}</span>
+          ${deal ? `<span class="was">${t().usually(`<s>${fmtMoney(deal.u / 100)}</s>`)}</span>` : ""}
+          ${unitLine ? `<span class="u">${unitLine}</span>` : ""}
+          <span class="nm">${esc(it.name)}</span>
+          ${sizeText ? `<span class="sz">${esc(sizeText)}</span>` : ""}
+          ${deal && showSpark ? sparkSvg(deal.h, deal.u, "spark") : ""}
+        </span>
+      </a>
+      <button type="button" class="addbtn${on ? " on" : ""}" data-add="${esc(it.link)}" aria-label="${esc(on ? t().inLists(on) + ": " + it.name : t().addToList(it.name))}">${on ? `<span class="q">${on}</span>` : plusIcon}</button>
+    </div>`;
+  }
+
+  function sorted(list) {
+    const l = storeFilter === "all" ? list.slice() : list.filter(i => i.store === storeFilter);
+    if (sortMode === "price") l.sort((a, b) => a.price - b.price);
+    if (sortMode === "unit") l.sort((a, b) => (a.unitPrice ?? 1e9) - (b.unitPrice ?? 1e9));
+    return l;
+  }
+
+  // A recent search: tap the text to search again, tap × to forget it.
+  const recentChips = (list, qAttr, rmAttr) => `<div class="chips" style="flex-wrap:wrap">${list.map(r => `<span class="rchip"><button type="button" class="rq" ${qAttr}="${esc(r)}">${esc(r)}</button><button type="button" class="rx" ${rmAttr}="${esc(r)}" aria-label="${esc(t().removeRecent(r))}">×</button></span>`).join("")}</div>`;
+  function rememberIn(key, q) {
+    q = q.trim();
+    if (q.length < 2) return;
+    const recent = store.get(key, []).filter(x => x.toLowerCase() !== q.toLowerCase());
+    recent.unshift(q);
+    store.set(key, recent.slice(0, 8));
+  }
+  const forgetIn = (key, q) => store.set(key, store.get(key, []).filter(x => x !== q));
+
+  // Recent searches only show while the search bar is focused and empty; otherwise the home view shows products.
+  let qFocused = false, dqFocused = false;
+  function startScreen() {
+    const recent = store.get("sp-recent", []);
+    if (qFocused) return recent.length ? `<section class="recentpanel"><p class="label">${t().recent}</p>${recentChips(recent, "data-q", "data-rmq")}</section>` : `<p class="empty">${t().start}</p>`;
+    let html = `<p class="empty" style="padding-bottom:6px">${t().start}</p>`;
+    const top = [...dealsByLink.entries()].map(([link, d]) => ({ it: DB.byLink.get(link), d })).filter(x => x.it).sort((a, b) => b.d.d - a.d.d).slice(0, 8);
+    if (top.length) html += `<section><div class="bar" style="margin-bottom:10px"><p class="label" style="margin:0">${t().topDrops}</p><button type="button" class="linkbtn" id="seeDrops">${t().seeAllDrops}</button></div>
+      <div class="grid">${top.map(x => rowHtml(x.it, true, false)).join("")}</div></section>`;
+    return html;
+  }
+
+  const dataDate = () => { try { return new Date(storeIndex.updated).toLocaleDateString(lang === "nl" ? "nl-NL" : "en-GB", { day: "numeric", month: "long", year: "numeric" }); } catch { return ""; } };
+  function footer() {
+    let d = dataDate();
+    return `<section class="help"><p style="margin:0">${t().source} ${d ? t().updated(d) + "." : ""}</p></section>`;
+  }
+
+  function render() {
+    if (!DB) return;
+    const q = qEl.value.trim();
+    clearBtn.hidden = !q;
+    if (!q) { out.innerHTML = startScreen() + footer(); return; }
+    const r = search(q);
+    if (!r) { out.innerHTML = startScreen() + footer(); return; }
+    let html = "";
+    if (r.usedCorrection) html += `<p class="note">${t().showingFor(esc(q), esc(r.corrected))}</p>`;
+    else if (r.corrected) html += `<p class="note">${t().didYouMean} <button type="button" data-q="${esc(r.corrected)}">${esc(r.corrected)}</button>?</p>`;
+
+    if (!r.main.length && !r.similar.length) {
+      out.innerHTML = html + `<p class="empty">${t().nothing(esc(q))}</p>` + footer();
+      return;
+    }
+    const compareSource = r.main.length ? r.core : r.similar;
+    html += compareBlock(compareSource.slice(0, 300), r.usedCorrection ? r.corrected : q);
+
+    const list = sorted(r.main);
+    if (r.main.length) {
+      const minPrice = Math.min(...list.map(i => i.price));
+      html += `<section><div class="bar"><span class="count">${t().results(list.length)}</span>
+        <select id="sort" aria-label="Sort">
+          <option value="best"${sortMode === "best" ? " selected" : ""}>${t().sortBest}</option>
+          <option value="price"${sortMode === "price" ? " selected" : ""}>${t().sortPrice}</option>
+          <option value="unit"${sortMode === "unit" ? " selected" : ""}>${t().sortUnit}</option>
+        </select></div>
+        <div class="grid" style="margin-top:10px">${list.slice(0, shown).map(i => rowHtml(i, i.price === minPrice)).join("")}</div>
+        ${list.length > shown ? `<div style="display:grid;margin-top:10px"><button type="button" class="more" id="more">${t().more}</button></div>` : ""}
+      </section>`;
+    }
+    const sim = sorted(r.similar);
+    if (sim.length) {
+      html += `<section><p class="label">${t().similar}</p><p class="fine" style="margin:-4px 0 8px">${t().similarNote}</p>
+        <div class="grid">${sim.slice(0, 15).map(i => rowHtml(i, false)).join("")}</div></section>`;
+    }
+    out.innerHTML = html + footer();
+  }
+
+  // ---- Grocery list: kept on this phone and, when signed in, in the viewer's private store ----
+  let tab = store.get("sp-tab", "compare");
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  // Several named lists; `groceries` is always the items of the active (last opened) list.
+  const newList = name => ({ id: uid(), name: name || "", items: [], created: Date.now() });
+  let lists = store.get("sp-lists", null);
+  if (!Array.isArray(lists) || !lists.length) { lists = [newList("")]; lists[0].items = store.get("sp-list", []); }
+  let activeId = store.get("sp-active", lists[0].id);
+  let listOpen = store.get("sp-listopen", false);
+  let renamingId = null, confirmDelId = null;
+  const active = () => lists.find(l => l.id === activeId) || lists[0];
+  const listName = l => (l.name || "").trim() || t().defaultList;
+  let groceries = active().items;
+  function useLists(next) {
+    lists = Array.isArray(next) && next.length ? next.map(l => ({ ...l, items: (l.items || []).map(g => ({ ...g })) })) : [newList("")];
+    if (!lists.some(l => l.id === activeId)) activeId = lists[0].id;
+    groceries = active().items;
+  }
+  function openList(id) {
+    active().items = groceries;
+    activeId = id; groceries = active().items; listOpen = true; confirmClear = false;
+    store.set("sp-active", activeId); store.set("sp-listopen", true);
+    tipCache.clear(); renderList(); updateTabs(); window.scrollTo(0, 0);
+  }
+  let cloud = null; // { ref } when the private store is available
+  let phoneOnly = false; // signed in, but this viewer may not save to their account here
+  let saveError = false;
+  let confirmClear = false;
+  const listBody = $("#listBody"), listView = $("#listView"), addInput = $("#addInput"), listHead = $("#listHead");
+
+  let saveTimer = null, saving = Promise.resolve();
+  let lastLocal = 0;
+  function persist() {
+    lastLocal = Date.now();
+    active().items = groceries;
+    store.set("sp-lists", lists); store.set("sp-active", activeId);
+    if (!cloud) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const body = { lists: lists.map(l => ({ ...l, items: l.items.map(g => ({ ...g })) })), settings: { ...settings, stores: settings.stores.slice() }, savedAt: Date.now() };
+      saving = saving.then(() => cloud.ref.set(body)).then(() => {
+        if (saveError) { saveError = false; renderList(); }
+      }).catch(err => {
+        const code = err && err.code;
+        if (code === "invalid_argument" || code === "not_granted" || code === "revoked" || code === "capability_disabled") {
+          cloud = null; phoneOnly = true; renderList(); renderSettings(); // no save access: this phone keeps the data
+        } else { saveError = true; renderList(); }
+      });
+    }, 400);
+  }
+
+  function applyRemoteSettings(rs) {
+    if (!rs || typeof rs !== "object") return;
+    const storesChanged = Array.isArray(rs.stores) && rs.stores.join() !== settings.stores.join();
+    if (Array.isArray(rs.stores) && rs.stores.length) settings.stores = rs.stores.filter(k => ALL_STORES.some(s => s.key === k));
+    if (["light", "dark", "system"].includes(rs.theme)) settings.theme = rs.theme;
+    if (typeof rs.motion === "boolean") settings.motion = rs.motion;
+    if (rs.profile && typeof rs.profile === "object") settings.profile = { name: String(rs.profile.name || "").slice(0, 60), email: String(rs.profile.email || "").slice(0, 120) };
+    if (rs.lang === "en" || rs.lang === "nl") { settings.lang = rs.lang; if (rs.lang !== lang) { lang = rs.lang; store.set("sp-lang", lang); applyLang(); } }
+    store.set("sp-settings", settings);
+    applyTheme();
+    if (storesChanged && storeIndex.updated) loadPrices().catch(() => {});
+    renderSettings();
+  }
+
+  async function connectCloud() {
+    try {
+      const claude = window.claude;
+      if (!claude || !claude.use) return;
+      const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+      if (!db || !user) return;
+      try {
+        viewer = await user.me(); renderSettings();
+        if (obDraft && !obEl.hidden && !obDraft.name && viewer.name) { obDraft.name = viewer.name; if (obStep === 1) renderOnboarding(); }
+      } catch {}
+      const id = await user.id();
+      if (!id) return;
+      const ref = db.doc(`data/users/${id}/grocery`);
+      const snap = await ref.get();
+      cloud = { ref };
+      const data = snap.exists ? snap.data() : {};
+      if (Array.isArray(data.lists) && data.lists.length) { useLists(data.lists); store.set("sp-lists", lists); }
+      else if (Array.isArray(data.items)) { const l = newList(""); l.items = data.items; useLists([l]); persist(); } // older single list
+      else if (groceries.length) persist(); // first time: move this phone's lists into the account
+      applyRemoteSettings(snap.exists ? snap.data().settings : null);
+      renderList(); updateTabs();
+      ref.onSnapshot(s => {
+        if (s.metadata.hasPendingWrites || !s.exists || Date.now() - lastLocal < 3000) return;
+        const remoteLists = s.data().lists;
+        if (!Array.isArray(remoteLists)) return;
+        active().items = groceries;
+        if (JSON.stringify(remoteLists) === JSON.stringify(lists)) return;
+        useLists(remoteLists); store.set("sp-lists", lists);
+        applyRemoteSettings(s.data().settings);
+        renderList(); updateTabs();
+      }, () => {});
+    } catch { cloud = null; }
+  }
+
+  function addItems(text) {
+    const parts = text.split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
+    let added = false;
+    for (const p of parts) {
+      const existing = groceries.find(g => !g.product && g.text.toLowerCase() === p.toLowerCase());
+      if (existing) {
+        if (existing.done) { existing.done = false; existing.qty = 1; } else existing.qty = (existing.qty || 1) + 1;
+        groceries = [existing, ...groceries.filter(g => g !== existing)];
+      }
+      else groceries.unshift({ id: uid(), text: p.slice(0, 120), done: false, added: Date.now(), qty: 1 });
+      added = true;
+    }
+    if (added) { confirmClear = false; persist(); renderList(); updateTabs(); }
+  }
+
+  const searchIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`;
+  function listIcon(text) {
+    let c = category(text);
+    if (!c) {
+      const nl = parseQuery(text).map(term => term.alts[term.alts.length - 1].s).join(" ");
+      c = category(nl) || category(nl.replace(/\bbanan\b/, "bananen").replace(/\btoma\b/, "tomaten"));
+    }
+    return svg(c ? ICONS[c] : NOIMG);
+  }
+  // How many of this product are still to get (0 when it is not on the list).
+  const onList = link => {
+    active().items = groceries;
+    return lists.reduce((a, l) => a + l.items.filter(x => x.product && x.product.link === link && !x.done).reduce((b, x) => b + (x.qty || 1), 0), 0);
+  };
+
+  function addProduct(it, listId) {
+    active().items = groceries;
+    const target = lists.find(l => l.id === listId) || active();
+    const existing = target.items.find(g => g.product && g.product.link === it.link);
+    let qty = 1;
+    if (existing) {
+      if (existing.done) { existing.done = false; existing.qty = 1; } else existing.qty = (existing.qty || 1) + 1;
+      qty = existing.qty;
+    } else {
+      target.items.unshift({ id: uid(), text: it.name, done: false, added: Date.now(), qty: 1,
+        product: { name: it.name, price: it.price, size: it.size || "", store: it.store, link: it.link } });
+    }
+    groceries = active().items;
+    confirmClear = false; persist(); renderList(); updateTabs();
+    return qty;
+  }
+
+  // ---- "Add to which list?" sheet ----
+  let sheetItem = null, sheetReturn = null;
+  const sheet = $("#sheet");
+  function openSheet(it, from) {
+    sheetItem = it; sheetReturn = from || null;
+    active().items = groceries;
+    const L = t();
+    $("#sheetTitle").textContent = L.pickList;
+    $("#sheetProd").textContent = `${it.name} · ${storeName(it.store)} · ${fmtMoney(it.price)}`;
+    $("#sheetLists").innerHTML = lists.map(l => {
+      const have = l.items.filter(g => g.product && g.product.link === it.link && !g.done).reduce((a, g) => a + (g.qty || 1), 0);
+      const left = l.items.filter(g => !g.done).length;
+      return `<button type="button" class="pick" data-pick="${esc(l.id)}"><span class="grow"><b>${esc(listName(l))}</b><small>${have ? L.alreadyOn(have) : L.itemsLeft(left)}</small></span><span class="plus">${plusIcon}</span></button>`;
+    }).join("");
+    $("#sheetNewInput").value = "";
+    $("#sheetNewInput").placeholder = L.newListPh2;
+    $("#sheetNewInput").setAttribute("aria-label", L.newListPh2);
+    $("#sheetNewBtn").textContent = L.newListBtn;
+    $("#sheetCancel").textContent = L.cancel;
+    sheet.hidden = false;
+    const first = sheet.querySelector(".pick"); if (first) first.focus();
+  }
+  function closeSheet() { sheet.hidden = true; sheetItem = null; if (sheetReturn && sheetReturn.focus) sheetReturn.focus(); sheetReturn = null; }
+  function addFromSheet(listId) {
+    const it = sheetItem; if (!it) return;
+    const q = addProduct(it, listId);
+    const n = listName(lists.find(l => l.id === listId) || active());
+    closeSheet();
+    toast(q > 1 ? t().addedToN(n, q) : t().addedTo(n));
+    render(); renderDeals();
+  }
+  sheet.addEventListener("click", e => {
+    if (e.target === sheet || e.target.id === "sheetCancel") { closeSheet(); return; }
+    const pk = e.target.closest("[data-pick]"); if (pk) addFromSheet(pk.dataset.pick);
+  });
+  $("#sheetNew").addEventListener("submit", e => {
+    e.preventDefault();
+    const l = newList(($("#sheetNewInput").value || "").trim().slice(0, 60));
+    active().items = groceries; lists.push(l); persist(); renderList();
+    addFromSheet(l.id);
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet(); });
+
+  // Package contents: a piece count when the pack states one, otherwise its weight or volume.
+  const MEAS = { g: ["kg", 0.001], gr: ["kg", 0.001], gram: ["kg", 0.001], grm: ["kg", 0.001], kg: ["kg", 1], kilo: ["kg", 1],
+    ml: ["l", 0.001], mililiters: ["l", 0.001], milliliter: ["l", 0.001], cl: ["l", 0.01], l: ["l", 1], liter: ["l", 1], ltr: ["l", 1] };
+  const UNIT_RE = "(kg|kilo|gram|grm|gr|g|mililiters|milliliter|ml|cl|liter|ltr|l)";
+  const MULTI_RE = new RegExp("(\\d+(?:[.,]\\d+)?)\\s*x\\s*(\\d+(?:[.,]\\d+)?)\\s*" + UNIT_RE + "\\b", "i");
+  const SINGLE_RE = new RegExp("(\\d+(?:[.,]\\d+)?)\\s*" + UNIT_RE + "\\b", "i");
+  const PCS_RE = /(\d+)\s*(?:stuks|stuk|st)\b/i;
+  const num = x => parseFloat(x.replace(",", "."));
+  function measure(text) {
+    if (!text) return null;
+    let m = text.match(MULTI_RE);
+    if (m) { const [k, f] = MEAS[m[3].toLowerCase()]; return { kind: k, q: num(m[1]) * num(m[2]) * f }; }
+    m = text.match(SINGLE_RE);
+    if (m) { const [k, f] = MEAS[m[2].toLowerCase()]; return { kind: k, q: num(m[1]) * f }; }
+    return null;
+  }
+  function amountOf(p) {
+    // "2-pack" sold as "2 stuks" means two packs, not two pieces, so the contents are unknown.
+    if (/\d+\s*-?\s*pack\b/i.test(p.name) && !PCS_RE.test(p.name)) return null;
+    const m = (p.size || "").match(PCS_RE) || p.name.match(PCS_RE);
+    if (m && +m[1] > 0) return { kind: "pcs", q: +m[1] };
+    if (/\bper stuk\b/i.test(p.size || "")) return { kind: "pcs", q: 1 };
+    const a = measure(p.size) || measure(p.name);
+    return a && a.q > 0 ? a : null;
+  }
+
+  // Words that say nothing about what the product is (store brands, packaging, filler).
+  const FILLER = new Set(["ah", "albert", "heijn", "jumbo", "dirk", "daily", "chef", "beste", "excellent", "basic", "gwoon", "huismerk",
+    "de", "het", "een", "en", "van", "voor", "met", "in", "op", "naturel", "origineel", "original", "classic", "regular", "stuks", "stuk", "st",
+    "pak", "zak", "fles", "blik", "pot", "doos", "multipack", "voordeelverpakking", "familiepak", "voordeel", "vriesvers", "kant", "klaar",
+    "per", "pakket", "x", "g", "gr", "gram", "kg", "ml", "cl", "l", "liter", "pack", "xl", "mini", "groot", "grote", "klein", "kleine", "verse", "vers"]);
+  // Words that make it a different product, so a cheaper option may not add them.
+  const DIFFERENT = new Set(["mix", "volkoren", "meergranen", "glutenvrij", "lactosevrij", "suikervrij", "light", "zero", "vegan", "vegetarisch",
+    "bio", "biologisch", "spek", "kaneel", "halfvolle", "volle", "magere", "ongezouten", "gezouten", "pittig", "mild", "protein", "proteine",
+    "schudfles", "spekplakjes", "houdbare", "lactosevrije", "lactofree", "langlekker", "melkdrank", "drinkyoghurt", "kaas", "ham", "kip", "chocolade", "vanille", "aardbei", "banaan"]);
+  const keyWords = name => norm(name).split(" ").filter(w => w.length >= 2 && !/^\d/.test(w) && !FILLER.has(w));
+  const sameWord = (a, b) => a === b || (a.length >= 5 && b.length >= 5 && Math.abs(a.length - b.length) <= 2 && (a.startsWith(b) || b.startsWith(a)));
+
+  const tipCache = new Map();
+  function cheaperOption(g) {
+    if (!DB || !g.product || g.done) return null;
+    const base = DB.byLink.get(g.product.link) || g.product;
+    const qty = g.qty || 1;
+    const key = base.link + "|" + qty;
+    if (tipCache.has(key)) return tipCache.get(key);
+    let best = null;
+    const amt = amountOf(base), keys = keyWords(base.name);
+    if (amt && keys.length) {
+      const need = amt.q * qty, current = base.price * qty, cat = category(base.name);
+      const first = keys.reduce((a, b) => (b.length > a.length ? b : a));
+      for (const c of DB.items) {
+        if (c.link === base.link || !c.n.includes(first.slice(0, 5))) continue;
+        const ck = keyWords(c.name);
+        if (!keys.every(k => ck.some(w => sameWord(k, w)))) continue;
+        const extra = ck.filter(w => !keys.some(k => sameWord(k, w)));
+        if (extra.length > 1 || extra.some(w => DIFFERENT.has(w))) continue;
+        if (cat && category(c.name) !== cat) continue;
+        const a = amountOf(c);
+        if (!a || a.kind !== amt.kind) continue;
+        const m = Math.round(need / a.q);
+        if (m < 1 || m > 8 || Math.abs(m * a.q - need) > need * 0.005) continue;
+        const cost = Math.round(m * c.price * 100) / 100;
+        if (cost <= current - 0.05 && (!best || cost < best.cost)) best = { c, m, cost, save: current - cost, current, deal: dealsByLink.get(c.link) || null };
+      }
+    }
+    tipCache.set(key, best);
+    return best;
+  }
+  const storeName = k => (ALL_STORES.find(s => s.key === k) || {}).name || k;
+  let toastTimer;
+  function toast(msg) {
+    const el = $("#toast"); el.textContent = msg; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => (el.hidden = true), 1800);
+  }
+
+  const histOpen = new Set();
+  const histData = {}; // item id -> {vals} once loaded
+  function histHtml(g) {
+    const h = histData[g.id];
+    if (!h) return `<p class="fine" style="margin:0">…</p>`;
+    if (!h.vals || h.vals.filter(Boolean).length < 2) return `<p class="fine" style="margin:0">${t().histNone}</p>`;
+    const vs = h.vals.filter(Boolean), sorted = vs.slice().sort((a, b) => a - b);
+    const usual = sorted[Math.floor(sorted.length / 2)];
+    return `${sparkSvg(h.vals, usual, "hchart")}
+      <div class="hl"><span>${t().histNow} <b>${fmtMoney(vs[vs.length - 1] / 100)}</b></span><span>${t().histUsual} <b>${fmtMoney(usual / 100)}</b></span>
+      <span>${t().histLow} <b>${fmtMoney(sorted[0] / 100)}</b></span><span>${t().histHigh} <b>${fmtMoney(sorted[sorted.length - 1] / 100)}</b></span></div>`;
+  }
+  async function toggleHistory(id) {
+    if (histOpen.has(id)) { histOpen.delete(id); renderList(); return; }
+    histOpen.add(id); renderList();
+    const g = groceries.find(x => x.id === id);
+    if (!g || !g.product) return;
+    const h = await loadHistory(g.product.store);
+    const rel = relLink(g.product.link, g.product.store);
+    histData[id] = { vals: h && rel != null ? h.p[rel] || null : null };
+    renderList();
+  }
+  const livePrice = g => (g.product ? ((DB && DB.byLink.get(g.product.link)) || g.product).price : null);
+  function itemHtml(g) {
+    const qty = g.qty || 1;
+    const price = livePrice(g);
+    let priceText = "";
+    if (price != null) priceText = qty > 1 ? `${qty} × ${fmtMoney(price)} = <b>${fmtMoney(price * qty)}</b>` : `<b>${fmtMoney(price)}</b>`;
+    const tip = cheaperOption(g);
+    return `<div class="gi${g.done ? " done" : ""}">
+      <label><input type="checkbox" id="chk-${esc(g.id)}" data-tick="${esc(g.id)}"${g.done ? " checked" : ""}><span class="ico">${listIcon(g.text)}</span><span class="txt">${esc(g.text)}</span></label>
+      <button type="button" class="icon" data-find="${esc(g.id)}" aria-label="${t().compareItem}: ${esc(g.text)}" title="${t().compareItem}">${searchIcon}</button>
+      <button type="button" class="icon" data-del="${esc(g.id)}" aria-label="${t().removeItem}: ${esc(g.text)}" title="${t().removeItem}">×</button>
+      <div class="sub">
+        ${g.product ? `<span class="tag t-${g.product.store}">${(ALL_STORES.find(s => s.key === g.product.store) || {}).short || ""}</span>` : ""}
+        ${priceText ? `<span class="lp">${priceText}</span>` : ""}
+        ${g.product && dealsByLink.has(g.product.link) ? `<span class="dropchip">${t().dropFor(dealsByLink.get(g.product.link).d, fmtMoney(dealsByLink.get(g.product.link).u / 100))}</span>` : ""}
+        ${g.product && loaded[g.product.store] ? `<button type="button" class="linkbtn" data-hist="${esc(g.id)}" aria-expanded="${histOpen.has(g.id)}">${histOpen.has(g.id) ? t().hideHistory : t().history}</button>` : ""}
+        <span class="qty">
+          <button type="button" data-dec="${esc(g.id)}" aria-label="${t().qtyLess}"${qty <= 1 ? " disabled" : ""}>−</button>
+          <span aria-live="polite">${qty}</span>
+          <button type="button" data-inc="${esc(g.id)}" aria-label="${t().qtyMore}">+</button>
+        </span>
+      </div>
+      ${g.temp ? `<div class="temp-note"><span class="tempchip">${t().tempNote}</span><button type="button" class="linkbtn" data-revert="${esc(g.id)}">${t().switchBack}</button></div>` : ""}
+      ${histOpen.has(g.id) ? `<div class="hist" id="hist-${esc(g.id)}">${histHtml(g)}</div>` : ""}
+      ${tip ? `<div class="tip"><p>${(tip.deal ? t().cheaperDeal : t().cheaper)(tip.m, esc(tip.c.name), storeName(tip.c.store), fmtMoney(tip.cost), fmtMoney(tip.current), fmtMoney(tip.save))}</p>
+        <button type="button" class="btn small" data-switch="${esc(g.id)}">${t().switchTo}</button></div>` : ""}
+    </div>`;
+  }
+
+  let listSort = store.get("sp-listsort", "added");
+  function sortItems(items, how) {
+    const l = items.slice();
+    if (how === "az") l.sort((a, b) => a.text.localeCompare(b.text, lang === "nl" ? "nl" : "en", { sensitivity: "base" }));
+    if (how === "price") l.sort((a, b) => ((livePrice(b) ?? -1) * (b.qty || 1)) - ((livePrice(a) ?? -1) * (a.qty || 1)));
+    return l; // "added": newest first, as stored
+  }
+
+  const pencil = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>';
+  const trash = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
+  const renameForm = l => `<form class="renameform" data-rename-form="${esc(l.id)}"><input id="rn-${esc(l.id)}" type="text" value="${esc(l.name || "")}" placeholder="${esc(t().defaultList)}" maxlength="60" aria-label="${t().rename}"><button type="submit" class="btn">${t().save}</button></form>`;
+
+  function renderOverview() {
+    const L = t();
+    listHead.innerHTML = "";
+    $("#addForm").hidden = true;
+    const cards = lists.map(l => {
+      const todo = l.items.filter(g => !g.done), done = l.items.length - todo.length;
+      const sum = todo.reduce((a, g) => a + (livePrice(g) ?? 0) * (g.qty || 1), 0);
+      const openQty = todo.reduce((a, g) => a + (g.qty || 1), 0);
+      const name = renamingId === l.id ? renameForm(l) : `<span class="lrow"><b class="lname">${esc(listName(l))}</b><span class="lcount${openQty ? "" : " zero"}" aria-label="${L.openItems(openQty)}">${openQty}</span></span>`;
+      return `<div class="lcard">
+        ${renamingId === l.id ? name : `<button type="button" class="lopen" data-open="${esc(l.id)}">${name}
+          <span class="lmeta">${L.listMeta(openQty, done)}${sum ? ` · <b>${fmtMoney(sum)}</b>` : ""}</span></button>`}
+        <div class="lacts">
+          <button type="button" class="icon" data-rename="${esc(l.id)}" aria-label="${L.rename}: ${esc(listName(l))}" title="${L.rename}">${pencil}</button>
+          <button type="button" class="icon${confirmDelId === l.id ? " warn" : ""}" data-ldel="${esc(l.id)}" aria-label="${confirmDelId === l.id ? L.confirmDelete : L.deleteList}: ${esc(listName(l))}" title="${L.deleteList}">${confirmDelId === l.id ? `<span class="really">${L.confirmDelete}</span>` : trash}</button>
+        </div>
+      </div>`;
+    }).join("");
+    listBody.innerHTML = `<section><p class="label">${L.myLists} · ${lists.length}</p><div class="lcards">${cards}</div></section>
+      <form class="addform" id="newListForm" autocomplete="off"><input id="newListInput" type="text" maxlength="60" placeholder="${esc(L.newListPh)}" aria-label="${esc(L.newListPh)}"><button type="submit" class="btn">${L.create}</button></form>
+      ${saveError ? `<p class="note">${L.saveFail}</p>` : ""}
+      <p class="saved">${cloud ? L.savedCloud : phoneOnly ? L.savedPhoneOnly : L.savedLocal}</p>`;
+  }
+
+  function renderList() {
+    if (!listOpen) { renderOverview(); return; }
+    const cur = active();
+    $("#addForm").hidden = false;
+    listHead.innerHTML = `<div class="lhead"><button type="button" class="back" id="backLists" aria-label="${t().backToLists}">‹ ${t().backToLists}</button>
+      ${renamingId === cur.id ? renameForm(cur) : `<div class="ltitle"><h2>${esc(listName(cur))}</h2><button type="button" class="icon" data-rename="${esc(cur.id)}" aria-label="${t().rename}" title="${t().rename}">${pencil}</button></div>`}</div>`;
+    addInput.placeholder = t().addPh;
+    $("#addBtn").textContent = t().add;
+    const todo = groceries.filter(g => !g.done), done = groceries.filter(g => g.done);
+    let html = "";
+    if (saveError) html += `<p class="note">${t().saveFail}</p>`;
+    if (!groceries.length) html += `<p class="empty">${t().emptyList}</p>`;
+    else {
+      const priced = todo.filter(g => livePrice(g) != null);
+      const unpriced = todo.length - priced.length;
+      if (priced.length) {
+        const sum = priced.reduce((a, g) => a + livePrice(g) * (g.qty || 1), 0);
+        html += `<div class="total"><span>${t().total("")}</span><b>${fmtMoney(sum)}</b>${unpriced ? `<p>${t().noPrice(unpriced)}</p>` : ""}</div>`;
+      }
+      const sortSel = `<select id="listSort" aria-label="${t().sortList}">
+        ${["added", "az", "store", "price"].map(k => `<option value="${k}"${listSort === k ? " selected" : ""}>${t().listSorts[k]}</option>`).join("")}
+      </select>`;
+      let todoHtml;
+      if (!todo.length) todoHtml = `<p class="fine" style="margin:0">${t().allDone}</p>`;
+      else if (listSort === "store") {
+        todoHtml = [...ALL_STORES.map(s => s.key), null].map(k => {
+          const items = sortItems(todo.filter(g => (g.product ? g.product.store : null) === k), "az");
+          if (!items.length) return "";
+          const sum = items.reduce((a, g) => a + (livePrice(g) ?? 0) * (g.qty || 1), 0);
+          const head = k ? `<span class="tag t-${k}">${storeName(k)}</span>` : `<span class="nostore">${t().noStore}</span>`;
+          return `<div class="sgroup"><div class="shead">${head}<span class="fine" style="margin:0">${items.length}</span>${k ? `<b>${fmtMoney(sum)}</b>` : ""}</div>
+            <div class="groc">${items.map(itemHtml).join("")}</div></div>`;
+        }).join("");
+      } else todoHtml = `<div class="groc">${sortItems(todo, listSort).map(itemHtml).join("")}</div>`;
+      html += `<section><div class="bar" style="margin-bottom:8px"><p class="label" style="margin:0">${t().toBuy} · ${todo.length}</p>${sortSel}</div>${todoHtml}</section>`;
+      if (done.length) html += `<section><p class="label">${t().haveIt} · ${done.length}</p><div class="groc">${sortItems(done, listSort === "store" ? "az" : listSort).map(itemHtml).join("")}</div></section>`;
+      html += `<div class="actions">
+        ${done.length ? `<button type="button" class="btn ghost" id="untickAll">${t().untickAll}</button>
+        <button type="button" class="btn ghost${confirmClear ? " danger" : ""}" id="removeTicked">${confirmClear ? t().confirmRemove(done.length) : t().removeTicked(done.length)}</button>` : ""}
+      </div>`;
+    }
+    html += `<p class="saved">${cloud ? t().savedCloud : phoneOnly ? t().savedPhoneOnly : t().savedLocal}</p>`;
+    listBody.innerHTML = html;
+  }
+
+  const dealsView = $("#dealsView"), dealsOut = $("#dealsOut"), dq = $("#dq"), dclear = $("#dclear");
+  let dealSort = store.get("sp-dealsort", "pct"), dealFilter = "all", dealsShown = 30;
+  function dealsOnLists() {
+    active().items = groceries;
+    let n = 0;
+    for (const l of lists) for (const g of l.items) {
+      if (g.done || !g.product) continue;
+      if (dealsByLink.has(g.product.link)) n++;
+      else { const tip = cheaperOption(g); if (tip && tip.deal) n++; }
+    }
+    return n;
+  }
+  function renderDeals() {
+    dq.placeholder = t().dealSearchPh;
+    if (!DB || !dealsRaw) { dealsOut.innerHTML = `<p class="empty">${t().loading}</p>`; return; }
+    const L = t();
+    let items = [...dealsByLink.entries()].map(([link, d]) => ({ it: DB.byLink.get(link), d })).filter(x => x.it);
+    const query = dq.value.trim();
+    dclear.hidden = !query;
+    let corrected = null;
+    if (query) {
+      let terms = parseQuery(query);
+      let hits = items.filter(x => scoreExact(x.it, terms) >= 0);
+      if (!hits.length) {
+        const fixed = terms.map(term => correctToken(term.tok) || term.tok).join(" ");
+        if (fixed !== terms.map(x => x.tok).join(" ")) {
+          const h2 = items.filter(x => scoreExact(x.it, parseQuery(fixed)) >= 0);
+          if (h2.length) { hits = h2; corrected = fixed; }
+        }
+      }
+      items = hits;
+    }
+    if (dealFilter !== "all") items = items.filter(x => x.it.store === dealFilter);
+    if (dealSort === "save") items.sort((a, b) => (b.d.u - b.d.p) - (a.d.u - a.d.p));
+    else if (dealSort === "new") items.sort((a, b) => (b.d.since > a.d.since ? 1 : b.d.since < a.d.since ? -1 : b.d.d - a.d.d));
+    else items.sort((a, b) => b.d.d - a.d.d);
+    const storesWith = STORES.filter(s => [...dealsByLink.values()].some(d => d.s === s.key));
+    const onLists = dealsOnLists();
+    const qNote = query && corrected ? `<p class="note">${L.showingFor(esc(query), esc(corrected))}</p>` : "";
+    const emptyMsg = query ? `<p class="empty">${L.noDealFor(esc(query))}</p>` : `<p class="empty">${L.noDeals}</p>`;
+    const drecent = store.get("sp-drecent", []);
+ const recentHtml = !query && dqFocused && drecent.length ? `<section><p class="label">${L.recent}</p>${recentChips(drecent, "data-dq", "data-rmdq")}</section>` : "";
+    dealsOut.innerHTML = qNote + recentHtml + `<section class="dealhead"><h2>${L.dealsTitle}</h2><p>${L.dealsIntro(dealsRaw.days.length)}</p>
+        ${onLists ? `<p class="note" style="margin:4px 0 0">${L.dealsOnLists(onLists)}</p>` : ""}</section>
+      ${storesWith.length > 1 ? `<div class="chips" style="flex-wrap:wrap">${[{ key: "all", name: L.all }, ...storesWith].map(s => `<button type="button" class="chip" data-dstore="${s.key}" aria-pressed="${dealFilter === s.key}">${s.name}</button>`).join("")}</div>` : ""}
+      ${items.length ? `<section><div class="bar"><span class="count">${L.results(items.length)}</span>
+        <select id="dealSort" aria-label="Sort">${Object.entries(L.dealSorts).map(([k, v]) => `<option value="${k}"${dealSort === k ? " selected" : ""}>${v}</option>`).join("")}</select></div>
+        <div class="grid" style="margin-top:10px">${items.slice(0, dealsShown).map(x => rowHtml(x.it, true, true)).join("")}</div>
+        ${items.length > dealsShown ? `<div style="display:grid;margin-top:10px"><button type="button" class="more" id="moreDeals">${L.more}</button></div>` : ""}</section>`
+      : emptyMsg}`;
+  }
+  let dtimer;
+  dq.addEventListener("input", () => { dealsShown = 30; clearTimeout(dtimer); dtimer = setTimeout(renderDeals, 180); });
+  dq.addEventListener("keydown", e => { if (e.key === "Enter") { rememberIn("sp-drecent", dq.value); dq.blur(); } });
+  dq.addEventListener("change", () => rememberIn("sp-drecent", dq.value));
+  dclear.addEventListener("click", () => { dq.value = ""; renderDeals(); dq.focus(); });
+  dealsView.addEventListener("click", e => {
+    const rmd = e.target.closest("[data-rmdq]");
+    if (rmd) { forgetIn("sp-drecent", rmd.dataset.rmdq); renderDeals(); return; }
+    const dqb = e.target.closest("[data-dq]");
+    if (dqb) { dq.value = dqb.dataset.dq; rememberIn("sp-drecent", dq.value); dealsShown = 30; dq.blur(); dqFocused = false; renderDeals(); window.scrollTo(0, 0); return; }
+    const ab = e.target.closest("[data-add]");
+    if (ab) { const it = DB && DB.byLink.get(ab.dataset.add); if (it) { if (dq.value.trim()) rememberIn("sp-drecent", dq.value); openSheet(it, ab); } return; }
+    const ds = e.target.closest("[data-dstore]");
+    if (ds) { dealFilter = ds.dataset.dstore; dealsShown = 30; renderDeals(); return; }
+    if (e.target.id === "moreDeals") { dealsShown += 30; renderDeals(); }
+  });
+  dealsView.addEventListener("change", e => { if (e.target.id === "dealSort") { dealSort = e.target.value; store.set("sp-dealsort", dealSort); renderDeals(); } });
+
+  function updateTabs() {
+    const open = groceries.filter(g => !g.done).reduce((a, g) => a + (g.qty || 1), 0);
+    $("#tab-compare-label").textContent = t().tabCompare;
+    $("#tab-list-label").textContent = t().tabList;
+    const badge = $("#tab-list .n");
+    if (badge) badge.remove();
+    // Item counts are shown on each list card instead of on the tab.
+    $("#tab-compare").setAttribute("aria-selected", tab === "compare");
+    $("#tab-list").setAttribute("aria-selected", tab === "list");
+    $("#tab-settings").setAttribute("aria-selected", tab === "settings");
+    $("#tab-deals").setAttribute("aria-selected", tab === "deals");
+    $("#tab-deals-label").textContent = t().tabDeals;
+    const db = $("#tab-deals .n"); if (db) db.remove();
+    const dn = DB && dealsRaw ? dealsOnLists() : 0;
+    if (dn) $("#tab-deals").insertAdjacentHTML("beforeend", `<span class="n">${dn}</span>`);
+    dealsView.hidden = tab !== "deals";
+    $("#tab-settings-label").textContent = t().tabSettings;
+    settingsView.hidden = tab !== "settings";
+    $("#compareControls").hidden = tab !== "compare";
+    out.hidden = tab !== "compare";
+    listView.hidden = tab !== "list";
+  }
+
+  // ---- Settings: kept on this phone and with the list in the viewer's account ----
+  let settings = Object.assign({ stores: DEFAULT_STORES.slice(), theme: "light" }, store.get("sp-settings", {}));
+  let storeIndex = { updated: null, stores: {} };
+  const loaded = {}; // store key -> price block
+  let viewer = null;
+  const settingsView = $("#settingsView"), settingsBody = $("#settingsBody");
+
+  function applyTheme() { document.documentElement.setAttribute("data-scheme", settings.theme || "light"); }
+
+  // ---- Price drops and price history (built each morning from 30 days of daily prices) ----
+  let dealsRaw = null;
+  let dealsByLink = new Map();
+  const histCache = {};
+  function indexDeals() {
+    dealsByLink = new Map();
+    if (!dealsRaw) return;
+    for (const d of dealsRaw.deals) {
+      const b = loaded[d.s];
+      if (b && settings.stores.includes(d.s)) dealsByLink.set(b.base + d.l, d);
+    }
+  }
+  function relLink(link, st) { const b = loaded[st]; return b && link.startsWith(b.base) ? link.slice(b.base.length) : null; }
+  function loadHistory(st) {
+    if (!histCache[st]) histCache[st] = fetch(`data/history-${st}.json`).then(r => (r.ok ? r.json() : null)).catch(() => null);
+    return histCache[st];
+  }
+  function sparkSvg(vals, usual, cls) {
+    const pts = vals.map((v, i) => [i, v]).filter(p => p[1] > 0);
+    if (pts.length < 2) return "";
+    const W = 300, H = cls === "spark" ? 34 : 76, pad = 4;
+    const ys = pts.map(p => p[1]).concat(usual ? [usual] : []);
+    let lo = Math.min(...ys), hi = Math.max(...ys);
+    if (hi === lo) { hi += 1; lo -= 1; }
+    const n = vals.length - 1 || 1;
+    const x = i => pad + (i / n) * (W - 2 * pad), y = v => pad + (1 - (v - lo) / (hi - lo)) * (H - 2 * pad);
+    const line = pts.map((p, k) => `${k ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join("");
+    const area = `${line}L${x(pts[pts.length - 1][0]).toFixed(1)},${H}L${x(pts[0][0]).toFixed(1)},${H}Z`;
+    const last = pts[pts.length - 1];
+    return `<svg class="${cls}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <path class="spark-area" d="${area}"/>${usual ? `<line class="spark-usual" x1="0" x2="${W}" y1="${y(usual).toFixed(1)}" y2="${y(usual).toFixed(1)}"/>` : ""}
+      <path class="spark-line" d="${line}" vector-effect="non-scaling-stroke"/><circle class="spark-dot" cx="${x(last[0]).toFixed(1)}" cy="${y(last[1]).toFixed(1)}" r="3.5"/></svg>`;
+  }
+
+  async function loadPrices() {
+    if (!storeIndex.updated) {
+      const r = await fetch("data/stores.json");
+      if (!r.ok) throw new Error(r.status);
+      storeIndex = await r.json();
+    }
+    const want = settings.stores.filter(k => (storeIndex.stores[k] || {}).count > 0);
+    if (!want.length) want.push(...DEFAULT_STORES);
+    const missing = want.filter(k => !loaded[k]);
+    if (missing.length && DB) toast(t().loadingStore(missing.map(storeName).join(", ")));
+    await Promise.all(missing.map(async k => {
+      const r = await fetch(`data/prices-${k}.json`);
+      if (!r.ok) throw new Error(r.status);
+      loaded[k] = await r.json();
+    }));
+    STORES = ALL_STORES.filter(s => want.includes(s.key));
+    if (!STORES.some(s => s.key === storeFilter)) storeFilter = "all";
+    DB = buildIndex({ stores: loaded, updated: storeIndex.updated });
+    if (!dealsRaw) { try { const r = await fetch("data/deals.json"); dealsRaw = r.ok ? await r.json() : null; } catch { dealsRaw = null; } }
+    indexDeals();
+    tipCache.clear();
+    revertEndedDeals();
+    renderChips(); render(); renderList(); renderSettings(); renderDeals(); updateTabs();
+  }
+
+  // Undo temporary price-drop switches whose drop has ended, in every list.
+  function revertEndedDeals() {
+    if (!DB) return;
+    active().items = groceries;
+    let n = 0;
+    for (const l of lists) for (const g of l.items) {
+      if (!g.temp || !g.product || !loaded[g.product.store]) continue;
+      if (dealsByLink.has(g.product.link)) continue;
+      g.text = g.temp.text; g.qty = g.temp.qty; g.product = g.temp.product; delete g.temp; n++;
+    }
+    if (n) { groceries = active().items; persist(); setTimeout(() => toast(t().reverted(n)), 400); }
+  }
+
+  function saveSettings() {
+    store.set("sp-settings", settings);
+    persist();
+  }
+
+  let editingProfile = false, confirmWipe = false;
+  function renderSettings() {
+    const L = t();
+    active().items = groceries;
+    const total = lists.length;
+    const prof = settings.profile || { name: "", email: "" };
+    const name = prof.name || (viewer && viewer.name) || L.guest;
+    const where = cloud ? L.savedCloud : phoneOnly ? L.savedPhoneOnly : L.savedLocal;
+    const acct = `<section class="card"><h2>${L.account}</h2>
+      <div class="acct">${viewer ? `<img alt="" src="${esc(viewer.avatarUrl)}">` : ""}<div class="who"><b>${esc(name)}</b>
+        ${prof.email ? `<span>${esc(prof.email)}</span>` : ""}
+        </div></div>
+      ${editingProfile ? `<form class="pform" id="profileForm" autocomplete="off">
+          <label for="pfName">${L.nameLabel}</label><input id="pfName" type="text" maxlength="60" value="${esc(prof.name || (viewer && viewer.name) || "")}" placeholder="${esc(L.guest)}">
+          <label for="pfEmail">${L.emailLabel}</label><input id="pfEmail" type="email" maxlength="120" value="${esc(prof.email || "")}" placeholder="name@example.com">
+          <div class="actions"><button type="submit" class="btn">${L.save}</button><button type="button" class="btn ghost" id="pfCancel">${L.cancel}</button></div>
+        </form>` : `<div class="actions"><button type="button" class="btn ghost" id="editProfile">${L.editProfile}</button></div>`}
+      <p class="fine" style="margin:0">${L.listsCount(total)} · ${where}</p></section>`;
+    const wipe = `<section class="card"><h2>${L.thisPhone}</h2>
+      <p class="fine" style="margin:0">${cloud ? L.wipeNoteCloud : L.wipeNoteLocal}</p>
+      <div class="actions"><button type="button" class="btn ghost${confirmWipe ? " danger" : ""}" id="wipePhone">${confirmWipe ? L.wipeConfirm : L.wipePhone}</button></div></section>
+      <section class="card"><p class="fine" style="margin:0">${L.replayNote}</p><div class="actions"><button type="button" class="btn ghost" id="replayTour">${L.replay}</button></div></section>`;
+    const storeRows = ALL_STORES.map(s => {
+      const info = storeIndex.stores[s.key] || {};
+      const avail = info.count > 0;
+      const on = avail && settings.stores.includes(s.key);
+      return `<label class="opt${avail ? "" : " off"}"><input type="checkbox" id="st-${s.key}" data-store-toggle="${s.key}"${on ? " checked" : ""}${avail ? "" : " disabled"}>
+        <span class="tag t-${s.key}">${s.short}</span>
+        <span class="grow"><span>${s.name}</span><small>${avail ? L.products(info.count) : L.noPrices}${s.key === "lidl" && avail ? " · via boodschaapje.nl" : ""}</small></span></label>`;
+    }).join("");
+    const radio = (group, val, label, cur) => `<label class="opt"><input type="radio" name="${group}" id="${group}-${val}" data-${group}="${val}"${cur === val ? " checked" : ""}><span class="grow"><span>${label}</span></span></label>`;
+    settingsBody.innerHTML = acct +
+      `<section class="card"><h2>${L.stores}</h2><p class="fine" style="margin:0">${L.storesNote}</p><div class="opts">${storeRows}</div></section>` +
+      `<section class="card"><h2>${L.appearance}</h2><div class="opts">${radio("theme", "light", L.themeLight, settings.theme)}${radio("theme", "dark", L.themeDark, settings.theme)}${radio("theme", "system", L.themeSystem, settings.theme)}
+        <label class="opt"><input type="checkbox" id="motionToggle" data-motion="1"${settings.motion === false ? "" : " checked"}><span class="grow"><span>${L.motion}</span><small>${L.motionNote}</small></span></label></div></section>` +
+      `<section class="card"><h2>${L.language}</h2><div class="opts">${radio("lang", "en", "English", lang)}${radio("lang", "nl", "Nederlands", lang)}</div></section>` +
+      `<section class="card"><h2>${L.helpTitle}</h2><ol>${L.helpSteps.map(x => `<li>${x}</li>`).join("")}</ol></section>` +
+      `<section class="card"><h2>${L.about}</h2><p class="fine" style="margin:0">${L.aboutText(dataDate() || "—")} <a href="https://www.checkjebon.nl/" target="_blank" rel="noopener">checkjebon.nl</a></p></section>` + wipe;
+  }
+
+  settingsBody.addEventListener("click", e => {
+    const id = e.target.id;
+    if (id === "replayTour") { setTab("compare", true); qEl.value = ""; render(); setTimeout(() => startTour(0), 150); return; }
+    if (id === "editProfile") { editingProfile = true; confirmWipe = false; renderSettings(); const f = $("#pfName"); if (f) f.focus(); }
+    else if (id === "pfCancel") { editingProfile = false; renderSettings(); }
+    else if (id === "wipePhone") {
+      if (!confirmWipe) { confirmWipe = true; renderSettings(); return; }
+      // Forget everything this phone holds; an account copy (if any) loads again on the next open.
+      try { Object.keys(localStorage).filter(k => k.startsWith("sp-")).forEach(k => localStorage.removeItem(k)); } catch {}
+      confirmWipe = false; cloud = null;
+      settings = { stores: DEFAULT_STORES.slice(), theme: "light" };
+      lists = [newList("")]; activeId = lists[0].id; groceries = active().items; listOpen = false;
+      applyTheme(); toast(t().wiped); renderSettings(); renderList(); updateTabs(); loadPrices().catch(() => {});
+    }
+  });
+  settingsBody.addEventListener("submit", e => {
+    if (e.target.id !== "profileForm") return;
+    e.preventDefault();
+    settings.profile = { name: ($("#pfName").value || "").trim().slice(0, 60), email: ($("#pfEmail").value || "").trim().slice(0, 120) };
+    editingProfile = false; saveSettings(); renderSettings(); toast(t().profileSaved);
+  });
+  settingsBody.addEventListener("change", e => {
+    const el = e.target, d = el.dataset || {};
+    if (d.storeToggle) {
+      const k = d.storeToggle;
+      const next = el.checked ? [...new Set([...settings.stores, k])] : settings.stores.filter(x => x !== k);
+      const usable = next.filter(x => (storeIndex.stores[x] || {}).count > 0);
+      if (!usable.length) { el.checked = true; toast(t().keepOne); return; }
+      settings.stores = ALL_STORES.map(s => s.key).filter(x => next.includes(x));
+      saveSettings();
+      loadPrices().catch(() => toast(t().loadFail));
+    } else if (d.theme) { settings.theme = d.theme; applyTheme(); saveSettings(); }
+    else if (d.motion) { settings.motion = el.checked; saveSettings(); }
+    else if (d.lang) { lang = d.lang; store.set("sp-lang", lang); settings.lang = lang; saveSettings(); applyLang(); }
+  });
+
+  // Tabs slide in from the side they sit on in the bottom bar.
+  const TAB_ORDER = ["compare", "deals", "list", "settings"];
+  const viewOf = k => ({ compare: out, deals: dealsView, list: listView, settings: settingsView }[k]);
+  // The phone's "remove animations" setting was hiding these; the app now has its own switch (on by default).
+  const reduceMotion = () => settings.motion === false;
+  function slideIn(el, dir) {
+    if (!el || reduceMotion()) return;
+    el.classList.remove("slide-from-right", "slide-from-left");
+    void el.offsetWidth;
+    el.classList.add(dir > 0 ? "slide-from-right" : "slide-from-left");
+    el.addEventListener("animationend", () => el.classList.remove("slide-from-right", "slide-from-left"), { once: true });
+  }
+  function setTab(next, noSlide) {
+    const prev = tab;
+    tab = next; store.set("sp-tab", tab); updateTabs(); window.scrollTo(0, 0);
+    if (prev !== next && !noSlide) slideIn(viewOf(next), TAB_ORDER.indexOf(next) > TAB_ORDER.indexOf(prev) ? 1 : -1);
+  }
+
+  // Swipe sideways to move between tabs (finger right-to-left = next tab, like most Android apps).
+  // The page follows the finger, then either slides out to the next tab or springs back.
+  let swipe = null;
+  function swipeBlocked(target) {
+    if (!sheet.hidden || !obEl.hidden || tourIdx >= 0) return true;
+    if (target.closest("input, textarea, select, nav.bottom, .sheet")) return true;
+    for (let n = target; n && n !== document.body; n = n.parentElement) {
+      if (n.scrollWidth > n.clientWidth + 2 && /(auto|scroll)/.test(getComputedStyle(n).overflowX)) return true; // a row that scrolls sideways
+    }
+    return false;
+  }
+  const neighbour = dx => { const i = TAB_ORDER.indexOf(tab) + (dx < 0 ? 1 : -1); return i >= 0 && i < TAB_ORDER.length ? TAB_ORDER[i] : null; };
+  function resetDrag(el) { if (!el) return; el.style.transition = ""; el.style.transform = ""; el.style.opacity = ""; }
+  // The tab next door, shown beside the current one while dragging.
+  function showPeek(sw, key) {
+    if (sw.peekKey === key) return;
+    hidePeek(sw);
+    if (!key) return;
+    const el = viewOf(key);
+    const mainTop = document.querySelector("main").getBoundingClientRect().top;
+    const headerBottom = document.querySelector("header").getBoundingClientRect().bottom;
+    const top = Math.max(sw.el.offsetTop, headerBottom - mainTop);
+    el.hidden = false;
+    Object.assign(el.style, { position: "absolute", top: `${top}px`, left: "0", right: "0", transition: "none", pointerEvents: "none" });
+    sw.peek = el; sw.peekKey = key;
+  }
+  function hidePeek(sw) {
+    if (!sw.peek) return;
+    const el = sw.peek;
+    resetDrag(el); Object.assign(el.style, { position: "", top: "", left: "", right: "", pointerEvents: "" });
+    if (sw.peekKey !== tab) el.hidden = true;
+    sw.peek = null; sw.peekKey = null;
+  }
+  function paintDrag(sw, dx) {
+    const W = window.innerWidth, key = neighbour(dx);
+    const shown = key ? dx : dx * 0.25; // resist past the first and last tab
+    const p = Math.min(1, Math.abs(shown) / W);
+    sw.el.style.transition = "none";
+    sw.el.style.transform = `translateX(${shown}px)`;
+    sw.el.style.opacity = String(1 - p * 0.7);
+    showPeek(sw, key);
+    if (sw.peek) {
+      sw.peek.style.transform = `translateX(${shown + (dx < 0 ? W : -W)}px)`;
+      sw.peek.style.opacity = String(0.3 + p * 0.7);
+    }
+  }
+  document.addEventListener("touchstart", e => {
+    if (e.touches.length !== 1 || swipeBlocked(e.target)) { swipe = null; return; }
+    const tch = e.touches[0];
+    swipe = { x: tch.clientX, y: tch.clientY, dragging: false, dead: false, el: viewOf(tab), lastX: tch.clientX, lastT: Date.now(), vx: 0, peek: null, peekKey: null };
+  }, { passive: true });
+  document.addEventListener("touchmove", e => {
+    if (!swipe || swipe.dead) return;
+    const tch = e.touches[0], dx = tch.clientX - swipe.x, dy = tch.clientY - swipe.y;
+    if (!swipe.dragging) {
+      if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { swipe.dead = true; return; } // vertical scroll
+      if (Math.abs(dx) < 12) return;
+      swipe.dragging = true;
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    }
+    const now = Date.now();
+    swipe.vx = (tch.clientX - swipe.lastX) / Math.max(1, now - swipe.lastT);
+    swipe.lastX = tch.clientX; swipe.lastT = now;
+    if (swipe.el && !reduceMotion()) paintDrag(swipe, dx);
+  }, { passive: true });
+  function endSwipe(e) {
+    if (!swipe) return;
+    const sw = swipe; swipe = null;
+    if (!sw.dragging) return;
+    const tch = e.changedTouches && e.changedTouches[0];
+    const dx = tch ? tch.clientX - sw.x : 0;
+    const next = neighbour(dx);
+    const far = Math.abs(dx) > window.innerWidth * 0.25 || (Math.abs(sw.vx) > 0.5 && Math.sign(sw.vx) === Math.sign(dx) && Math.abs(dx) > 40);
+    const el = sw.el, W = window.innerWidth, ease = "transform 0.2s ease-out, opacity 0.2s ease-out";
+    if (reduceMotion()) { resetDrag(el); hidePeek(sw); if (next && far) setTab(next, true); return; } // animations off: jump straight there
+    if (next && far) {
+      // carry on in the same direction: the current tab leaves, the next one settles in place
+      if (!sw.peek) showPeek(sw, next);
+      el.style.transition = ease; el.style.transform = `translateX(${dx < 0 ? -W : W}px)`; el.style.opacity = "0";
+      if (sw.peek) { sw.peek.style.transition = ease; sw.peek.style.transform = "translateX(0)"; sw.peek.style.opacity = "1"; }
+      setTimeout(() => { resetDrag(el); hidePeek(sw); setTab(next, true); }, 210);
+      return;
+    }
+    // not far enough: spring back
+    el.style.transition = ease; el.style.transform = "translateX(0)"; el.style.opacity = "1";
+    if (sw.peek) { sw.peek.style.transition = ease; sw.peek.style.transform = `translateX(${dx < 0 ? W : -W}px)`; sw.peek.style.opacity = "0"; }
+    setTimeout(() => { resetDrag(el); hidePeek(sw); }, 220);
+  }
+  document.addEventListener("touchend", endSwipe, { passive: true });
+  document.addEventListener("touchcancel", endSwipe, { passive: true });
+
+  document.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.tab === "list" && tab === "list" && listOpen) { listOpen = false; renamingId = null; store.set("sp-listopen", false); renderList(); }
+    setTab(b.dataset.tab);
+  }));
+  $("#addForm").addEventListener("submit", e => { e.preventDefault(); addItems(addInput.value); addInput.value = ""; addInput.focus(); });
+  listBody.addEventListener("change", e => {
+    if (e.target.id === "listSort") { listSort = e.target.value; store.set("sp-listsort", listSort); renderList(); return; }
+    const id = e.target.dataset && e.target.dataset.tick; if (!id) return;
+    const g = groceries.find(x => x.id === id); if (!g) return;
+    g.done = e.target.checked; confirmClear = false; persist(); renderList(); updateTabs();
+  });
+  function handleListMeta(e) {
+    const op = e.target.closest("[data-open]");
+    if (op) { renamingId = null; confirmDelId = null; openList(op.dataset.open); return true; }
+    if (e.target.closest("#backLists")) { listOpen = false; renamingId = null; store.set("sp-listopen", false); renderList(); window.scrollTo(0, 0); return true; }
+    const rn = e.target.closest("[data-rename]");
+    if (rn) { renamingId = rn.dataset.rename; confirmDelId = null; renderList(); const inp = $("#rn-" + renamingId); if (inp) { inp.focus(); inp.select(); } return true; }
+    const dl = e.target.closest("[data-ldel]");
+    if (dl) {
+      const id = dl.dataset.ldel;
+      if (confirmDelId !== id) { confirmDelId = id; renderList(); return true; }
+      lists = lists.filter(l => l.id !== id); confirmDelId = null;
+      if (!lists.length) lists = [newList("")];
+      if (!lists.some(l => l.id === activeId)) activeId = lists[0].id;
+      groceries = active().items; persist(); renderList(); updateTabs(); return true;
+    }
+    return false;
+  }
+  function handleListForms(e) {
+    const f = e.target.closest("form"); if (!f) return;
+    if (f.id === "newListForm") {
+      e.preventDefault();
+      const inp = $("#newListInput"); const l = newList((inp.value || "").trim().slice(0, 60));
+      active().items = groceries; lists.push(l); persist(); openList(l.id); toast(t().listCreated(listName(l)));
+    } else if (f.dataset.renameForm) {
+      e.preventDefault();
+      const l = lists.find(x => x.id === f.dataset.renameForm);
+      const inp = f.querySelector("input");
+      if (l && inp) { l.name = inp.value.trim().slice(0, 60); }
+      renamingId = null; persist(); renderList();
+    }
+  }
+  listHead.addEventListener("click", e => { handleListMeta(e); });
+  listHead.addEventListener("submit", handleListForms);
+  listBody.addEventListener("submit", handleListForms);
+  listBody.addEventListener("click", e => {
+    if (handleListMeta(e)) return;
+    const inc = e.target.closest("[data-inc]"), dec = e.target.closest("[data-dec]");
+    if (inc || dec) {
+      const g = groceries.find(x => x.id === (inc || dec).dataset[inc ? "inc" : "dec"]);
+      if (g) { g.qty = Math.max(1, (g.qty || 1) + (inc ? 1 : -1)); persist(); renderList(); updateTabs(); }
+      return;
+    }
+    const hb = e.target.closest("[data-hist]");
+    if (hb) { toggleHistory(hb.dataset.hist); return; }
+    const rv = e.target.closest("[data-revert]");
+    if (rv) {
+      const g = groceries.find(x => x.id === rv.dataset.revert);
+      if (g && g.temp) { g.text = g.temp.text; g.qty = g.temp.qty; g.product = g.temp.product; delete g.temp; persist(); renderList(); updateTabs(); toast(t().switchedBack); }
+      return;
+    }
+    const sw = e.target.closest("[data-switch]");
+    if (sw) {
+      const g = groceries.find(x => x.id === sw.dataset.switch);
+      const tip = g && cheaperOption(g);
+      if (tip) {
+        const twin = !tip.deal && groceries.find(x => x !== g && x.product && x.product.link === tip.c.link && !x.done);
+        if (twin) { twin.qty = (twin.qty || 1) + tip.m; groceries = groceries.filter(x => x !== g); }
+        else {
+          if (tip.deal && !g.temp) g.temp = { text: g.text, qty: g.qty || 1, product: { ...g.product } };
+          if (!tip.deal) delete g.temp;
+          g.text = tip.c.name; g.qty = tip.m;
+          g.product = { name: tip.c.name, price: tip.c.price, size: tip.c.size || "", store: tip.c.store, link: tip.c.link };
+        }
+        delete histData[g.id]; histOpen.delete(g.id);
+        persist(); renderList(); updateTabs(); toast(t().switched);
+      }
+      return;
+    }
+    const del = e.target.closest("[data-del]");
+    if (del) { groceries = groceries.filter(g => g.id !== del.dataset.del); persist(); renderList(); updateTabs(); return; }
+    const find = e.target.closest("[data-find]");
+    if (find) {
+      const g = groceries.find(x => x.id === find.dataset.find);
+      if (g) { qEl.value = g.text; shown = 40; setTab("compare"); render(); }
+      return;
+    }
+    if (e.target.id === "untickAll") { groceries.forEach(g => (g.done = false)); confirmClear = false; persist(); renderList(); updateTabs(); return; }
+    if (e.target.id === "removeTicked") {
+      if (!confirmClear) { confirmClear = true; renderList(); return; }
+      groceries = groceries.filter(g => !g.done); confirmClear = false; persist(); renderList(); updateTabs();
+    }
+  });
+
+  function renderChips() {
+    const opts = [{ key: "all", label: t().all }, ...STORES.map(s => ({ key: s.key, label: s.name }))];
+    chipsEl.innerHTML = opts.map(o => `<button type="button" class="chip" data-store="${o.key}" aria-pressed="${storeFilter === o.key}">${o.label}</button>`).join("");
+  }
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    qEl.placeholder = t().placeholder;
+    $("#lang-en").setAttribute("aria-pressed", lang === "en");
+    $("#lang-nl").setAttribute("aria-pressed", lang === "nl");
+    const lt = $("#loadingText"); if (lt) lt.textContent = t().loading;
+    renderChips();
+    render();
+    renderList();
+    renderSettings();
+    renderDeals();
+    updateTabs();
+  }
+
+  const remember = q => rememberIn("sp-recent", q);
+
+  let timer;
+  qEl.addEventListener("input", () => {
+    shown = 40;
+    clearTimeout(timer);
+    timer = setTimeout(() => { render(); if (qEl.value.trim() !== lastQuery) { lastQuery = qEl.value.trim(); } }, 180);
+  });
+  qEl.addEventListener("focus", () => { qFocused = true; if (!qEl.value.trim()) render(); });
+  qEl.addEventListener("blur", () => { qFocused = false; if (!qEl.value.trim()) render(); });
+  dq.addEventListener("focus", () => { dqFocused = true; if (!dq.value.trim()) renderDeals(); });
+  dq.addEventListener("blur", () => { dqFocused = false; if (!dq.value.trim()) renderDeals(); });
+  // Tapping a recent search must not blur the box first, or the list would vanish before the tap lands.
+  [out, dealsView].forEach(el => el.addEventListener("pointerdown", e => { if (e.target.closest(".rchip")) e.preventDefault(); }));
+  // Android's back button: the first press only closes the keyboard and the page gets no event for it,
+  // so watch the screen height grow back (keyboard gone) and leave the search box then.
+  let minH = Infinity;
+  const viewH = () => Math.max(window.innerHeight || 0, (window.visualViewport && window.visualViewport.height) || 0);
+  function onViewResize() {
+    if (!qFocused && !dqFocused) { minH = Infinity; return; }
+    const h = viewH();
+    if (h < minH) minH = h;
+    else if (h > minH + 100) { minH = Infinity; if (document.activeElement) document.activeElement.blur(); }
+  }
+  window.addEventListener("resize", onViewResize);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", onViewResize);
+  // Chrome on Android can also report the keyboard directly; when it reports the keyboard gone, leave the box.
+  try {
+    if (navigator.virtualKeyboard) navigator.virtualKeyboard.addEventListener("geometrychange", e => {
+      const r = e.target && e.target.boundingRect;
+      if (r && r.height === 0 && (qFocused || dqFocused) && document.activeElement) document.activeElement.blur();
+    });
+  } catch {}
+  // If that signal never comes, the next back press closes the recent searches instead of leaving the app:
+  // focusing a search box adds a history step, and going back from it just leaves the box.
+  let searchStep = false, skipPop = false;
+  function addSearchStep() { if (searchStep) return; try { history.pushState({ spSearch: 1 }, ""); searchStep = true; } catch {} }
+  function dropSearchStep() { if (!searchStep) return; searchStep = false; skipPop = true; try { history.back(); } catch { skipPop = false; } }
+  window.addEventListener("popstate", () => {
+    if (skipPop) { skipPop = false; return; }
+    if (searchStep) { searchStep = false; if (document.activeElement) document.activeElement.blur(); qFocused = dqFocused = false; render(); renderDeals(); }
+  });
+  [qEl, dq].forEach(el => {
+    el.addEventListener("focus", () => { minH = viewH(); addSearchStep(); });
+    el.addEventListener("blur", () => setTimeout(() => { if (!qFocused && !dqFocused) dropSearchStep(); }, 0));
+  });
+  qEl.addEventListener("keydown", e => { if (e.key === "Enter") { remember(qEl.value); qEl.blur(); } });
+  qEl.addEventListener("change", () => remember(qEl.value));
+  clearBtn.addEventListener("click", () => { qEl.value = ""; render(); qEl.focus(); });
+  document.querySelectorAll(".topline .lang button").forEach(b => b.addEventListener("click", () => { lang = b.dataset.lang; store.set("sp-lang", lang); settings.lang = lang; saveSettings(); applyLang(); }));
+  chipsEl.addEventListener("click", e => {
+    const b = e.target.closest("[data-store]"); if (!b) return;
+    storeFilter = b.dataset.store; shown = 40; renderChips(); render();
+  });
+  out.addEventListener("click", e => {
+    const ab = e.target.closest("[data-add]");
+    if (ab) {
+      const it = DB && DB.byLink.get(ab.dataset.add);
+      if (it) openSheet(it, ab);
+      return;
+    }
+    const rmq = e.target.closest("[data-rmq]");
+    if (rmq) { forgetIn("sp-recent", rmq.dataset.rmq); render(); return; }
+    if (e.target.id === "seeDrops") { setTab("deals"); return; }
+    const qb = e.target.closest("[data-q]");
+    if (qb) { qEl.value = qb.dataset.q; remember(qb.dataset.q); shown = 40; qEl.blur(); qFocused = false; render(); window.scrollTo(0, 0); return; }
+    if (e.target.id === "more") { shown += 40; render(); }
+    const cb = e.target.closest("[data-cmp]");
+    if (cb) { compareMode = cb.dataset.cmp; store.set("sp-compare", compareMode); render(); return; }
+    const row = e.target.closest("a.row, a.cell");
+    if (row && qEl.value.trim()) remember(qEl.value);
+  });
+  out.addEventListener("change", e => { if (e.target.id === "sort") { sortMode = e.target.value; render(); } });
+
+  // ---- First-time setup: a few welcome screens, then a short tour of the main buttons ----
+  const obEl = $("#onboard"), obCard = $("#obCard");
+  let obStep = 0, obDraft = null;
+  const OB_STEPS = 4;
+  const featIcons = [ICONS.drink, '<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/>', '<path d="M3 7l6 6 4-4 8 8"/><path d="M15 17h6v-6"/>'];
+  function startOnboarding() {
+    obStep = 0;
+    const prof = settings.profile || {};
+    obDraft = { name: prof.name || (viewer && viewer.name) || "", email: prof.email || "", stores: settings.stores.slice(), theme: settings.theme || "light" };
+    obEl.hidden = false; renderOnboarding();
+  }
+  function renderOnboarding() {
+    const L = t();
+    const dots = `<div class="ob-dots" aria-label="${L.obStep(obStep + 1, OB_STEPS)}">${Array.from({ length: OB_STEPS }, (_, i) => `<span class="${i === obStep ? "on" : ""}"></span>`).join("")}</div>`;
+    const langSw = `<div class="lang" role="group" aria-label="${L.obLang}"><button type="button" data-oblang="en" aria-pressed="${lang === "en"}">EN</button><button type="button" data-oblang="nl" aria-pressed="${lang === "nl"}">NL</button></div>`;
+    let body = "";
+    if (obStep === 0) {
+      body = `<h1 id="obTitle">${L.obWelcome} Schap<span>prijs</span></h1><p class="lead">${L.obLead}</p>
+        <ul class="ob-feats">${L.obFeats.map((f, i) => `<li><span class="fi">${svg(featIcons[i])}</span><div><b>${f[0]}</b><span>${f[1]}</span></div></li>`).join("")}</ul>`;
+    } else if (obStep === 1) {
+      body = `<h2 id="obTitle">${L.obProfileTitle}</h2><p class="lead">${L.obProfileLead}</p>
+        <div class="card pform"><label for="obName">${L.nameLabel}</label><input id="obName" type="text" maxlength="60" value="${esc(obDraft.name)}" placeholder="${esc(L.guest)}">
+        <label for="obEmail">${L.emailLabel}</label><input id="obEmail" type="email" maxlength="120" value="${esc(obDraft.email)}" placeholder="name@example.com"></div>`;
+    } else if (obStep === 2) {
+      body = `<h2 id="obTitle">${L.obStoresTitle}</h2><p class="lead">${L.obStoresLead}</p>
+        <div class="card"><div class="opts">${ALL_STORES.map(st => {
+          const info = storeIndex.stores[st.key];
+          const avail = !info || info.count > 0;
+          const on = avail && obDraft.stores.includes(st.key);
+          return `<label class="opt${avail ? "" : " off"}"><input type="checkbox" id="ob-st-${st.key}" data-obstore="${st.key}"${on ? " checked" : ""}${avail ? "" : " disabled"}>
+            <span class="tag t-${st.key}">${st.short}</span><span class="grow"><span>${st.name}</span><small>${info ? (avail ? L.products(info.count) : L.noPrices) : ""}</small></span></label>`;
+        }).join("")}</div></div>`;
+    } else {
+      body = `<h2 id="obTitle">${L.obLookTitle}</h2><p class="lead">${L.obLookLead}</p>
+        <div class="card"><div class="opts">${[["light", L.themeLight], ["dark", L.themeDark], ["system", L.themeSystem]].map(([v, label]) => `<label class="opt"><input type="radio" name="obtheme" id="obtheme-${v}" data-obtheme="${v}"${obDraft.theme === v ? " checked" : ""}><span class="grow"><span>${label}</span></span></label>`).join("")}</div></div>`;
+    }
+    const last = obStep === OB_STEPS - 1;
+    obCard.innerHTML = `<div class="ob-top">${dots}${langSw}</div>${body}
+      <div class="ob-nav">${obStep ? `<button type="button" class="btn ghost" id="obBack">${L.obBack}</button>` : `<span></span>`}
+        <button type="button" class="btn" id="obNext">${last ? L.obStart : L.obNext}</button></div>`;
+    const first = obCard.querySelector("#obNext"); if (first && obStep === 0) first.focus();
+  }
+  function readObFields() {
+    const n = $("#obName"), e = $("#obEmail");
+    if (n) obDraft.name = n.value.trim().slice(0, 60);
+    if (e) obDraft.email = e.value.trim().slice(0, 120);
+  }
+  function finishOnboarding(withTour) {
+    readObFields();
+    const claudeName = (viewer && viewer.name) || "";
+    settings.profile = { name: obDraft.name && obDraft.name !== claudeName ? obDraft.name : "", email: obDraft.email };
+    const storesChanged = obDraft.stores.join() !== settings.stores.join();
+    settings.stores = obDraft.stores.length ? obDraft.stores : DEFAULT_STORES.slice();
+    settings.theme = obDraft.theme; applyTheme();
+    store.set("sp-onboarded", true); saveSettings();
+    obEl.hidden = true;
+    if (storesChanged) loadPrices().catch(() => {});
+    renderSettings();
+    if (withTour) { setTab("compare"); qEl.value = ""; render(); setTimeout(() => startTour(0), 350); }
+  }
+  obCard.addEventListener("click", e => {
+    const id = e.target.id;
+    const lb = e.target.closest("[data-oblang]");
+    if (lb) { readObFields(); lang = lb.dataset.oblang; store.set("sp-lang", lang); settings.lang = lang; applyLang(); renderOnboarding(); return; }
+    if (id === "obBack") { readObFields(); obStep = Math.max(0, obStep - 1); renderOnboarding(); return; }
+    if (id === "obNext") {
+      readObFields();
+      if (obStep === 2 && !obDraft.stores.length) { toast(t().keepOne); return; }
+      if (obStep < OB_STEPS - 1) { obStep++; renderOnboarding(); obEl.scrollTop = 0; } else finishOnboarding(true);
+    }
+  });
+  obCard.addEventListener("change", e => {
+    const d = e.target.dataset || {};
+    if (d.obstore) obDraft.stores = ALL_STORES.map(x => x.key).filter(k => k === d.obstore ? e.target.checked : obDraft.stores.includes(k));
+    if (d.obtheme) { obDraft.theme = d.obtheme; settings.theme = d.obtheme; applyTheme(); }
+  });
+
+  const tourHole = $("#tourHole"), tourTip = $("#tourTip"), tourBlock = $("#tourBlock");
+  // Each step: which tab to show, and what to highlight there. Steps whose target is missing are skipped.
+  const TOUR = [
+    { tab: "compare", el: () => $("#q") },
+    { tab: "compare", el: () => (STORES.length > 1 ? $("#storeChips") : null) },
+    { tab: "compare", el: () => out.querySelector(".tile") },
+    { tab: "deals", el: () => $("#tab-deals") },
+    { tab: "deals", el: () => $("#dq") },
+    { tab: "deals", el: () => dealsOut.querySelector(".tile") },
+    { tab: "list", el: () => $("#tab-list") },
+    { tab: "list", el: () => listBody.querySelector(".lcard") },
+    { tab: "list", el: () => $("#newListForm") },
+    { tab: null, el: () => $("#tab-settings") },
+  ];
+  let tourIdx = -1;
+  function startTour(i) { tourIdx = i; tourBlock.hidden = false; showTourStep(1); }
+  function endTour() {
+    tourIdx = -1; tourHole.hidden = tourTip.hidden = tourBlock.hidden = true;
+    setTab("compare");
+    toast(t().tourFinished);
+  }
+  function showTourStep(dir) {
+    let el = null, switched = false;
+    while (tourIdx >= 0 && tourIdx < TOUR.length) {
+      const st = TOUR[tourIdx];
+      if (st.tab && st.tab !== tab) {
+        if (st.tab === "list") { listOpen = false; renamingId = null; store.set("sp-listopen", false); renderList(); }
+        setTab(st.tab); switched = true;
+      }
+      el = st.el();
+      if (el) { const rr = el.getBoundingClientRect(); if (rr.width > 0 && rr.height > 0) break; }
+      el = null; tourIdx += dir;
+    }
+    if (!el) { endTour(); return; }
+    if (switched && !reduceMotion()) {
+      tourHole.hidden = tourTip.hidden = true;
+      const target = el, idx = tourIdx;
+      setTimeout(() => { if (tourIdx === idx) placeTour(target); }, 300);
+      return;
+    }
+    placeTour(el);
+  }
+  function placeTour(el) {
+    const L = t();
+    if (!el.closest("nav.bottom, header")) el.scrollIntoView({ block: "center" });
+    const r = el.getBoundingClientRect(), pad = 6;
+    tourHole.style.transition = reduceMotion() ? "none" : "";
+    Object.assign(tourHole.style, { left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
+    tourHole.hidden = false;
+    const [title, text] = L.tour[tourIdx];
+    const last = tourIdx === TOUR.length - 1;
+    tourTip.innerHTML = `<h3>${title}</h3><p>${text}</p>
+      <div class="tnav"><span class="grow">${L.tourOf(tourIdx + 1, TOUR.length)}</span>
+        ${tourIdx ? `<button type="button" class="btn ghost" id="tourBack">${L.tourBack}</button>` : `<button type="button" class="btn ghost" id="tourSkip">${L.tourSkip}</button>`}
+        <button type="button" class="btn" id="tourNext">${last ? L.tourDone : L.tourNext}</button></div>`;
+    tourTip.hidden = false;
+    const tipH = tourTip.offsetHeight, vh = window.innerHeight, vw = window.innerWidth;
+    const below = r.bottom + pad + 12, above = r.top - pad - 12 - tipH;
+    const top = below + tipH < vh - 8 ? below : Math.max(8, above);
+    const left = Math.min(Math.max(12, r.left + r.width / 2 - tourTip.offsetWidth / 2), vw - tourTip.offsetWidth - 12);
+    Object.assign(tourTip.style, { top: `${top}px`, left: `${left}px` });
+    $("#tourNext").focus();
+  }
+  tourTip.addEventListener("click", e => {
+    if (tourIdx < 0) return;
+    if (e.target.id === "tourNext") { if (tourIdx >= TOUR.length - 1) { endTour(); return; } tourIdx++; showTourStep(1); }
+    else if (e.target.id === "tourBack") { tourIdx = Math.max(0, tourIdx - 1); showTourStep(-1); }
+    else if (e.target.id === "tourSkip") endTour();
+  });
+  window.addEventListener("resize", () => { if (tourIdx >= 0) showTourStep(1); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && tourIdx >= 0) endTour(); });
+
+  applyTheme();
+  applyLang();
+  connectCloud();
+  if (!store.get("sp-onboarded", false)) startOnboarding();
+  qEl.value = ""; dq.value = ""; // always open with empty searches; recent searches stay one tap away
+  loadPrices().catch(() => { out.innerHTML = `<p class="empty">${t().loadFail}</p>`; });
+})();
+</script>
+<script>
+  // Offline support and installability: register the service worker.
+  if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>
