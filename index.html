@@ -298,6 +298,18 @@ main { position: relative; overflow-x: clip; touch-action: pan-y; }
 @keyframes slideFromLeft { from { transform: translateX(-32%); opacity: 0; } to { transform: none; opacity: 1; } }
 .slide-from-right { animation: slideFromRight 0.26s cubic-bezier(0.2, 0.7, 0.3, 1); }
 .slide-from-left { animation: slideFromLeft 0.26s cubic-bezier(0.2, 0.7, 0.3, 1); }
+.install-bg { z-index: 35; display: flex; }
+.install { align-content: center; text-align: center; justify-items: center; min-height: 100%; }
+.install img.appicon { width: 112px; height: 112px; border-radius: 26px; box-shadow: 0 10px 30px rgb(10 60 100 / 0.25); }
+.install h1 { font: 800 2.1rem var(--f-display); margin: 4px 0 0; letter-spacing: -0.02em; }
+.install h1 span { color: var(--accent); }
+.install .lead { margin: 0 auto; max-width: 34ch; }
+.install .btn.big { padding: 15px 30px; font-size: 1.08rem; border-radius: 999px; }
+.install .how { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; width: 100%; max-width: 380px; display: grid; gap: 8px; }
+.install .how h2 { font: 700 1rem var(--f-display); margin: 0; }
+.install .how ol { margin: 0; padding-left: 20px; font-size: 0.93rem; display: grid; gap: 4px; }
+.install .done { background: var(--good-soft); color: var(--ink); border-radius: 12px; padding: 12px 16px; max-width: 380px; font-weight: 600; }
+.install .browser { border: 0; background: none; color: var(--muted); font: 500 0.88rem var(--f-body); text-decoration: underline; cursor: pointer; padding: 6px; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 #listBody { display: grid; gap: 18px; }
 .saved { font-size: 0.8rem; color: var(--muted); margin: 0; }
@@ -403,6 +415,7 @@ nav.bottom .n { position: absolute; top: 4px; left: calc(50% + 6px); font: 700 0
   </div>
 </nav>
 <div class="toast" id="toast" role="status" hidden></div>
+<div class="ob-bg install-bg" id="installScreen" hidden><div class="ob install" id="installCard"></div></div>
 <div class="ob-bg" id="onboard" hidden><div class="ob" id="obCard" role="dialog" aria-modal="true" aria-labelledby="obTitle"></div></div>
 <div class="tour-block" id="tourBlock" hidden></div>
 <div class="tour-hole" id="tourHole" hidden></div>
@@ -462,6 +475,11 @@ nav.bottom .n { position: absolute; top: 4px; left: calc(50% + 6px); font: 700 0
       unitShort: { kg: "/kg", l: "/l", st: "/pc" },
       updated: d => `Prices updated ${d}`,
       helpTitle: "Install the app",
+      instLead: "Compare supermarket prices, keep shopping lists and spot price drops.", instBtn: "Install the app", instFree: "Free · no account needed · works offline",
+      instIosTitle: "Install on iPhone or iPad", instIos: ["Tap the Share button at the bottom of Safari (the square with an arrow).", "Scroll down and tap “Add to Home Screen”.", "Tap “Add”, then open Schapprijs from your home screen."],
+      instAndTitle: "Install on Android", instAnd: ["Tap the ⋮ menu at the top right of Chrome.", "Tap “Install app” or “Add to Home screen”.", "Open Schapprijs from your home screen."],
+      instDeskTitle: "Install on your computer", instDesk: ["Click the install icon at the right of the address bar in Chrome or Edge.", "Click “Install”."],
+      instDone: "Installed. Open Schapprijs from your home screen or app list.", instBrowser: "Use it in the browser instead",
       helpSteps: ["Android (Chrome): tap the ⋮ menu, then “Install app” or “Add to Home screen”.", "iPhone (Safari): tap the Share button, then “Add to Home Screen”.", "Computer (Chrome or Edge): click the install icon in the address bar."],
       tabCompare: "Compare", tabList: "My lists",
       addToList: n => `Add ${n} to my list`, onList: (n, q) => `${n}: ${q} on your list. Tap to add one more`, added: "Added to your list", addedN: n => `Added. ${n} on your list now`, noImage: "No image",
@@ -551,6 +569,11 @@ nav.bottom .n { position: absolute; top: 4px; left: calc(50% + 6px); font: 700 0
       unitShort: { kg: "/kg", l: "/l", st: "/st" },
       updated: d => `Prijzen bijgewerkt ${d}`,
       helpTitle: "De app installeren",
+      instLead: "Vergelijk supermarktprijzen, houd boodschappenlijsten bij en zie prijsdalingen.", instBtn: "Installeer de app", instFree: "Gratis · geen account nodig · werkt offline",
+      instIosTitle: "Installeren op iPhone of iPad", instIos: ["Tik op de deelknop onderaan in Safari (het vierkantje met een pijl).", "Scroll omlaag en tik op ‘Zet op beginscherm’.", "Tik op ‘Voeg toe’ en open Schapprijs vanaf je beginscherm."],
+      instAndTitle: "Installeren op Android", instAnd: ["Tik op het ⋮-menu rechtsboven in Chrome.", "Tik op ‘App installeren’ of ‘Toevoegen aan startscherm’.", "Open Schapprijs vanaf je startscherm."],
+      instDeskTitle: "Installeren op je computer", instDesk: ["Klik op het installatie-icoon rechts in de adresbalk van Chrome of Edge.", "Klik op ‘Installeren’."],
+      instDone: "Geïnstalleerd. Open Schapprijs vanaf je startscherm of in je apps.", instBrowser: "Toch in de browser gebruiken",
       helpSteps: ["Android (Chrome): tik op het ⋮-menu en daarna op ‘App installeren’ of ‘Toevoegen aan startscherm’.", "iPhone (Safari): tik op de deelknop en daarna op ‘Zet op beginscherm’.", "Computer (Chrome of Edge): klik op het installatie-icoon in de adresbalk."],
       tabCompare: "Vergelijken", tabList: "Mijn lijsten",
       addToList: n => `${n} op mijn lijst zetten`, onList: (n, q) => `${n}: ${q} op je lijst. Tik om er nog een toe te voegen`, added: "Op je lijst gezet", addedN: n => `Toegevoegd. Nu ${n} op je lijst`, noImage: "Geen afbeelding",
@@ -1642,7 +1665,6 @@ nav.bottom .n { position: absolute; top: 4px; left: calc(50% + 6px); font: 700 0
       `<section class="card"><h2>${L.appearance}</h2><div class="opts">${radio("theme", "light", L.themeLight, settings.theme)}${radio("theme", "dark", L.themeDark, settings.theme)}${radio("theme", "system", L.themeSystem, settings.theme)}
         <label class="opt"><input type="checkbox" id="motionToggle" data-motion="1"${settings.motion === false ? "" : " checked"}><span class="grow"><span>${L.motion}</span><small>${L.motionNote}</small></span></label></div></section>` +
       `<section class="card"><h2>${L.language}</h2><div class="opts">${radio("lang", "en", "English", lang)}${radio("lang", "nl", "Nederlands", lang)}</div></section>` +
-      `<section class="card"><h2>${L.helpTitle}</h2><ol>${L.helpSteps.map(x => `<li>${x}</li>`).join("")}</ol></section>` +
       `<section class="card"><h2>${L.about}</h2><p class="fine" style="margin:0">${L.aboutText(dataDate() || "—")} <a href="https://www.checkjebon.nl/" target="_blank" rel="noopener">checkjebon.nl</a></p></section>` + wipe;
   }
 
@@ -2130,7 +2152,42 @@ nav.bottom .n { position: absolute; top: 4px; left: calc(50% + 6px); font: 700 0
   applyTheme();
   applyLang();
   connectCloud();
-  if (!store.get("sp-onboarded", false)) startOnboarding();
+  // ---- Download page: a browser visit shows how to install; the installed app goes straight in ----
+  const installEl = $("#installScreen"), installCard = $("#installCard");
+  const isInstalled = () => (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(ua);
+  let installPrompt = null, installedNow = false;
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installPrompt = e; if (!installEl.hidden) renderInstall(); });
+  window.addEventListener("appinstalled", () => { installedNow = true; installPrompt = null; if (!installEl.hidden) renderInstall(); });
+  function renderInstall() {
+    const L = t();
+    const langSw = `<div class="lang" role="group" aria-label="${L.obLang}"><button type="button" data-ilang="en" aria-pressed="${lang === "en"}">EN</button><button type="button" data-ilang="nl" aria-pressed="${lang === "nl"}">NL</button></div>`;
+    const steps = isIOS ? [L.instIosTitle, L.instIos] : isAndroid ? [L.instAndTitle, L.instAnd] : [L.instDeskTitle, L.instDesk];
+    installCard.innerHTML = `${langSw}<img class="appicon" src="icons/icon-512.png" alt="">
+      <h1>Schap<span>prijs</span></h1><p class="lead">${L.instLead}</p>
+      ${installedNow ? `<p class="done">${L.instDone}</p>`
+        : installPrompt ? `<button type="button" class="btn big" id="installBtn">${L.instBtn}</button>`
+        : `<div class="how"><h2>${steps[0]}</h2><ol>${steps[1].map(x => `<li>${x}</li>`).join("")}</ol></div>`}
+      <p class="fine" style="margin:0">${L.instFree}</p>
+      <button type="button" class="browser" id="useBrowser">${L.instBrowser}</button>`;
+  }
+  installCard.addEventListener("click", async e => {
+    const lb = e.target.closest("[data-ilang]");
+    if (lb) { lang = lb.dataset.ilang; store.set("sp-lang", lang); applyLang(); renderInstall(); return; }
+    if (e.target.id === "installBtn" && installPrompt) {
+      installPrompt.prompt();
+      try { const choice = await installPrompt.userChoice; if (choice && choice.outcome === "accepted") installedNow = true; } catch {}
+      installPrompt = null; renderInstall(); return;
+    }
+    if (e.target.id === "useBrowser") {
+      store.set("sp-browser", true); installEl.hidden = true;
+      if (!store.get("sp-onboarded", false)) startOnboarding();
+    }
+  });
+  if (!isInstalled() && !store.get("sp-browser", false)) { installEl.hidden = false; renderInstall(); }
+  else if (!store.get("sp-onboarded", false)) startOnboarding();
   qEl.value = ""; dq.value = ""; // always open with empty searches; recent searches stay one tap away
   loadPrices().catch(() => { out.innerHTML = `<p class="empty">${t().loadFail}</p>`; });
 })();
